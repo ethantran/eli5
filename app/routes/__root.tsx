@@ -13,7 +13,7 @@ import {
   useAuth,
 } from '@clerk/tanstack-start'
 import { TanStackRouterDevtools } from '@tanstack/router-devtools'
-import { createServerFn } from '@tanstack/start'
+import { createServerFn } from '@tanstack/react-start'
 import { HeadContent, Scripts } from '@tanstack/react-router'
 
 import { QueryClient } from '@tanstack/react-query'
