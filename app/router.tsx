@@ -30,6 +30,7 @@ export function createRouter() {
   // @snippet start example
   const router = routerWithQueryClient(
     createTanStackRouter({
+      scrollRestoration: true,
       routeTree,
       defaultPreload: 'intent',
       defaultErrorComponent: DefaultCatchBoundary,

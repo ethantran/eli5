@@ -1,7 +1,6 @@
 import {
   Link,
   Outlet,
-  ScrollRestoration,
   createRootRouteWithContext,
   useRouteContext,
 } from '@tanstack/react-router'
@@ -14,7 +13,9 @@ import {
   useAuth,
 } from '@clerk/tanstack-start'
 import { TanStackRouterDevtools } from '@tanstack/router-devtools'
-import { Meta, Scripts, createServerFn } from '@tanstack/start'
+import { createServerFn } from '@tanstack/start'
+import { HeadContent, Scripts } from '@tanstack/react-router'
+
 import { QueryClient } from '@tanstack/react-query'
 import * as React from 'react'
 import { getAuth } from '@clerk/tanstack-start/server'
@@ -118,7 +119,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   return (
     <html>
       <head>
-        <Meta />
+        <HeadContent />
       </head>
       <body>
         <div className="p-2 flex gap-2 text-lg">
@@ -150,7 +151,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         </div>
         <hr />
         {children}
-        <ScrollRestoration />
         <TanStackRouterDevtools position="bottom-right" />
         <Scripts />
       </body>
