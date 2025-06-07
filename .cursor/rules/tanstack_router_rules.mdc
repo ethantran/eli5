@@ -3,3 +3,40 @@ description:
 globs:
 alwaysApply: false
 ---
+# TanStack Router Rules
+
+## File Naming Conventions
+- **ALWAYS use `index.tsx` for root routes** with `createFileRoute('/')`
+- **NEVER use `_index.tsx` for root routes** - this is for nested index routes within route groups
+- Use `_layout.tsx` for layout routes (pathless layouts)
+- Use `_authed.tsx` for authentication-wrapped routes
+- Prefix files with `-` to exclude them from routing (e.g., `-components/`)
+- Use `()` for pathless route groups (organizational only)
+
+## Route Definition Rules
+1. **Check file naming first** when troubleshooting routing issues before diving into complex logic
+2. **Cross-reference with documentation examples** rather than assuming existing code is correct
+3. **Always verify route paths match TanStack Router conventions**:
+   - Root route: `index.tsx` with `createFileRoute('/')`
+   - Nested routes: `posts.tsx` with `createFileRoute('/posts')`
+   - Dynamic routes: `$id.tsx` with `createFileRoute('/posts/$id')`
+   - Index routes in nested: `index.tsx` within folder with `createFileRoute('/posts/')`
+
+## Troubleshooting Order
+When debugging routing issues:
+1. **File naming conventions** - Check if file names follow TanStack Router standards
+2. **Route path definitions** - Verify `createFileRoute()` paths are correct
+3. **Generated route tree** - Check if `routeTree.gen.ts` is in sync
+4. **Router configuration** - Verify router setup and context
+5. **Complex logic** - Only then dive into advanced routing logic
+
+## Documentation References
+- Always reference [TanStack Router docs](https://tanstack.com/router/v1/docs/framework/react/routing/routing-concepts) for file naming examples
+- Pay attention to actual file names in documentation examples, not just the explanatory text
+- When user provides documentation, carefully review the specific examples shown
+
+## Common Mistakes to Avoid
+- Using `_index.tsx` for root routes (should be `index.tsx`)
+- Assuming existing code follows conventions without verification
+- Focusing on complex routing logic before checking basic file structure
+- Not regenerating route tree after file changes
