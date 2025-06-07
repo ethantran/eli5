@@ -48,18 +48,36 @@ export function GuestChatInterface({ onSignUp, onBack }: GuestChatInterfaceProps
     }, [canConvert, showConversionPrompt]);
 
     const handleSendMessage = async (content: string) => {
-        if (!session || isGenerating) return;
+        console.log('=== handleSendMessage called ===');
+        console.log('Input:', { content: content.substring(0, 100), contentLength: content.length });
+        console.log('Current state:', {
+            hasSession: !!session,
+            isGenerating,
+            sessionId: session?.sessionId,
+            currentLevel: session?.currentLevel,
+            messageCount: session?.messages?.length
+        });
+
+        if (!session || isGenerating) {
+            console.log('Early return - no session or already generating');
+            return;
+        }
 
         try {
+            console.log('Setting isGenerating to true');
             setIsGenerating(true);
 
+            console.log('Adding user message...');
             // Add user message
-            addMessage({
+            const userMessage = {
                 content,
-                role: 'user',
-                status: 'complete',
-            });
+                role: 'user' as const,
+                status: 'complete' as const,
+            };
+            console.log('User message to add:', userMessage);
+            addMessage(userMessage);
 
+            console.log('Adding pending AI message...');
             // Add pending AI message
             const pendingMessage = {
                 content: '',
@@ -67,8 +85,12 @@ export function GuestChatInterface({ onSignUp, onBack }: GuestChatInterfaceProps
                 level: session.currentLevel,
                 status: 'pending' as const,
             };
+            console.log('Pending message to add:', pendingMessage);
             addMessage(pendingMessage);
 
+            console.log('Current messages after adding:', session.messages.length);
+
+            console.log('Calling generateExplanation...');
             // Generate AI response
             const response = await generateExplanation({
                 content,
@@ -76,58 +98,119 @@ export function GuestChatInterface({ onSignUp, onBack }: GuestChatInterfaceProps
                 sessionId: session.sessionId,
             });
 
+            console.log('Generated response received:', {
+                id: response.id,
+                contentLength: response.content.length,
+                level: response.level,
+                metadata: response.metadata
+            });
+
             // Update the pending message with the response
             const messages = session.messages;
+            console.log('Current messages before update:', messages.length);
             const pendingMessageId = messages[messages.length - 1]?.id;
+            console.log('Pending message ID to update:', pendingMessageId);
 
             if (pendingMessageId) {
-                updateMessage(pendingMessageId, {
+                console.log('Updating pending message with response...');
+                const updateData = {
                     content: response.content,
-                    status: 'complete',
+                    status: 'complete' as const,
                     metadata: response.metadata,
-                });
+                };
+                console.log('Update data:', updateData);
+                updateMessage(pendingMessageId, updateData);
+                console.log('Message update completed');
+            } else {
+                console.error('No pending message ID found to update!');
             }
         } catch (error) {
-            console.error('Error generating explanation:', error);
+            console.error('=== Error in handleSendMessage ===');
+            console.error('Error details:', {
+                error: error,
+                message: error instanceof Error ? error.message : 'Unknown error',
+                stack: error instanceof Error ? error.stack : undefined,
+                type: typeof error
+            });
 
             // Update with error state
             const messages = session?.messages || [];
+            console.log('Messages for error handling:', messages.length);
             const pendingMessageId = messages[messages.length - 1]?.id;
+            console.log('Pending message ID for error update:', pendingMessageId);
 
             if (pendingMessageId) {
-                updateMessage(pendingMessageId, {
+                console.log('Updating message with error state...');
+                const errorUpdate = {
                     content: 'Sorry, I encountered an error while generating your explanation. Please try again.',
-                    status: 'error',
+                    status: 'error' as const,
                     errorMessage: error instanceof Error ? error.message : 'Unknown error',
-                });
+                };
+                console.log('Error update data:', errorUpdate);
+                updateMessage(pendingMessageId, errorUpdate);
+                console.log('Error update completed');
+            } else {
+                console.error('No pending message ID found for error update!');
             }
         } finally {
+            console.log('Setting isGenerating to false');
             setIsGenerating(false);
+            console.log('handleSendMessage completed');
         }
     };
 
     const handleLevelChange = async (messageId: string, newLevel: EducationLevel) => {
-        if (!session || isGenerating) return;
+        console.log('=== handleLevelChange called ===');
+        console.log('Input:', { messageId, newLevel });
+        console.log('Current state:', {
+            hasSession: !!session,
+            isGenerating,
+            sessionId: session?.sessionId,
+            currentLevel: session?.currentLevel,
+            messageCount: session?.messages?.length
+        });
+
+        if (!session || isGenerating) {
+            console.log('Early return - no session or already generating');
+            return;
+        }
 
         try {
+            console.log('Setting isGenerating to true');
             setIsGenerating(true);
+
+            console.log('Updating level...');
             updateLevel(newLevel);
 
             // Find the original user message for this response
+            console.log('Finding original user message...');
             const messageIndex = session.messages.findIndex(m => m.id === messageId);
+            console.log('Message index:', messageIndex);
+
             const userMessage = session.messages
                 .slice(0, messageIndex)
                 .reverse()
                 .find(m => m.role === 'user');
 
-            if (!userMessage) return;
+            console.log('Found user message:', userMessage ? {
+                id: userMessage.id,
+                content: userMessage.content.substring(0, 100),
+                role: userMessage.role
+            } : 'NOT FOUND');
+
+            if (!userMessage) {
+                console.error('No user message found for regeneration');
+                return;
+            }
 
             // Update current message to pending
+            console.log('Updating message to pending state...');
             updateMessage(messageId, {
-                status: 'pending',
+                status: 'pending' as const,
                 level: newLevel,
             });
 
+            console.log('Calling regenerateAtLevel...');
             // Regenerate at new level
             const response = await regenerateAtLevel({
                 originalContent: userMessage.content,
@@ -135,21 +218,43 @@ export function GuestChatInterface({ onSignUp, onBack }: GuestChatInterfaceProps
                 sessionId: session.sessionId,
             });
 
+            console.log('Regeneration response received:', {
+                id: response.id,
+                contentLength: response.content.length,
+                level: response.level,
+                metadata: response.metadata
+            });
+
             // Update with new response
-            updateMessage(messageId, {
+            console.log('Updating message with new response...');
+            const finalUpdate = {
                 content: response.content,
                 level: newLevel,
-                status: 'complete',
+                status: 'complete' as const,
                 metadata: response.metadata,
-            });
+            };
+            console.log('Final update data:', finalUpdate);
+            updateMessage(messageId, finalUpdate);
+            console.log('Level change update completed');
         } catch (error) {
-            console.error('Error regenerating explanation:', error);
+            console.error('=== Error in handleLevelChange ===');
+            console.error('Error details:', {
+                error: error,
+                message: error instanceof Error ? error.message : 'Unknown error',
+                stack: error instanceof Error ? error.stack : undefined,
+                type: typeof error
+            });
+
+            console.log('Updating message with error state...');
             updateMessage(messageId, {
-                status: 'error',
+                status: 'error' as const,
                 errorMessage: error instanceof Error ? error.message : 'Failed to regenerate explanation',
             });
+            console.log('Error update completed');
         } finally {
+            console.log('Setting isGenerating to false');
             setIsGenerating(false);
+            console.log('handleLevelChange completed');
         }
     };
 

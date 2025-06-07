@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.2.12",
+    "@anthropic-ai/sdk": "^0.53.0",
     "@assistant-ui/react": "^0.10.19",
     "@assistant-ui/react-ai-sdk": "^0.10.13",
     "@assistant-ui/react-markdown": "^0.10.4",
