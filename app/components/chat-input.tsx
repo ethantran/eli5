@@ -1,7 +1,7 @@
 import { useState, useRef, FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Send, Loader2 } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn } from '~/lib/utils';
 
 interface ChatInputProps {
     onSend: (content: string) => void;

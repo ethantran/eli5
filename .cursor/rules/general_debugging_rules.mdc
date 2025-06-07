@@ -1,0 +1,36 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# General Debugging and Troubleshooting Rules
+
+## Documentation-First Approach
+1. **When user provides documentation links**, carefully examine the actual examples and file structures shown, not just the explanatory text
+2. **Always cross-reference existing code against official documentation** rather than assuming existing code is correct
+3. **Pay attention to naming conventions** in documentation examples as they are often critical
+4. **Start with the simplest possible explanation** before diving into complex troubleshooting
+
+## Systematic Debugging Order
+When troubleshooting any issue:
+1. **File/folder structure and naming conventions**
+2. **Basic configuration and setup**
+3. **Simple syntax and import issues**
+4. **Environment variables and dependencies**
+5. **Framework-specific conventions**
+6. **Complex business logic**
+
+## Common Debugging Mistakes to Avoid
+- Assuming existing code follows best practices without verification
+- Jumping to complex solutions before checking simple issues
+- Ignoring file naming conventions shown in documentation
+- Not reading documentation examples carefully when provided by user
+- Making changes without understanding the root cause
+- Focusing on advanced features before ensuring basics work
+
+## When User Provides Documentation
+- **Read the examples thoroughly** - file names, directory structures, code patterns
+- **Compare existing code against documentation standards**
+- **Look for discrepancies in naming conventions first**
+- **Ask clarifying questions if documentation contradicts existing code**
+

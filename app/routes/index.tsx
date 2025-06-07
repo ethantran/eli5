@@ -1,13 +1,63 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { useState } from 'react';
+import { createFileRoute } from '@tanstack/react-router';
+import { GuestLanding } from '~/components/guest-landing';
+import { GuestChatInterface } from '~/components/guest-chat-interface';
 
 export const Route = createFileRoute('/')({
   component: Home,
 })
 
+type AppMode = 'landing' | 'guest-chat' | 'signup';
+
 function Home() {
+  const [mode, setMode] = useState<AppMode>('landing');
+
+  const handleStartGuest = () => {
+    setMode('guest-chat');
+  };
+
+  const handleSignUp = () => {
+    setMode('signup');
+    // TODO: Implement actual signup flow with Clerk
+    console.log('Sign up clicked - will implement with Clerk');
+  };
+
+  const handleBackToLanding = () => {
+    setMode('landing');
+  };
+
+  if (mode === 'guest-chat') {
+    return (
+      <GuestChatInterface
+        onSignUp={handleSignUp}
+        onBack={handleBackToLanding}
+      />
+    );
+  }
+
+  if (mode === 'signup') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
+          <h2 className="text-2xl font-bold mb-4">Sign Up</h2>
+          <p className="text-gray-600 mb-4">
+            Authentication will be implemented with Clerk in the next phase.
+          </p>
+          <button
+            onClick={handleBackToLanding}
+            className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
+          >
+            Back to Landing
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="p-2">
-      <h1>Hello Clerk!</h1>
-    </div>
-  )
+    <GuestLanding
+      onStartGuest={handleStartGuest}
+      onSignUp={handleSignUp}
+    />
+  );
 }

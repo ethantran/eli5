@@ -3,9 +3,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ChevronDown, Clock, User, Bot } from 'lucide-react';
-import { LEVEL_DEFINITIONS, type Message, type EducationLevel } from '../lib/types';
-import { LevelDropdown } from './level-dropdown';
-import { cn } from '../lib/utils';
+import { LEVEL_DEFINITIONS, type Message, type EducationLevel } from '~/lib/types';
+import { LevelDropdown } from '~/components/level-dropdown';
+import { cn } from '~/lib/utils';
 
 interface MessageBubbleProps {
     message: Message;

@@ -3,13 +3,13 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MessageCircle, Users, Sparkles, ArrowRight, X } from 'lucide-react';
-import { useGuestSession } from '../lib/hooks/use-guest-session';
-import { MessageBubble } from './message-bubble';
-import { ChatInput } from './chat-input';
-import type { EducationLevel } from '../lib/types';
-import { cn } from '../lib/utils';
+import { useGuestSession } from '~/lib/hooks/use-guest-session';
+import { MessageBubble } from '~/components/message-bubble';
+import { ChatInput } from '~/components/chat-input';
+import type { EducationLevel } from '~/lib/types';
+import { cn } from '~/lib/utils';
 import { useAction } from 'convex/react';
-import { api } from '../../convex/_generated/api';
+import { api } from 'convex/_generated/api';
 
 interface GuestChatInterfaceProps {
     onSignUp?: () => void;

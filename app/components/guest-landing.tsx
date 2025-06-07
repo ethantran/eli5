@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { LEVEL_DEFINITIONS, type EducationLevel } from '../lib/types';
+import { LEVEL_DEFINITIONS, type EducationLevel } from '~/lib/types';
 import { ChevronRight, Brain, Zap, Users, ArrowRight } from 'lucide-react';
 
 interface GuestLandingProps {

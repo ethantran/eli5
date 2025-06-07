@@ -3,8 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Check, X } from 'lucide-react';
-import { EDUCATION_LEVELS, LEVEL_DEFINITIONS, type EducationLevel } from '../lib/types';
-import { cn } from '../lib/utils';
+import { EDUCATION_LEVELS, LEVEL_DEFINITIONS, type EducationLevel } from '~/lib/types';
+import { cn } from '~/lib/utils';
 
 interface LevelDropdownProps {
     currentLevel: EducationLevel;
