@@ -94,54 +94,63 @@ export function useGuestSession(): UseGuestSessionReturn {
 
     // Add message to session
     const addMessage = useCallback((message: Omit<Message, 'id' | 'createdAt'>) => {
-        if (!session) {
-            console.error('No active session to add message to');
-            return;
-        }
+        setSession(currentSession => {
+            if (!currentSession) {
+                console.error('No active session to add message to');
+                return currentSession;
+            }
 
-        try {
-            const updatedSession = addMessageToGuestSession(session, message);
-            setSession(updatedSession);
-            setError(null);
-        } catch (err) {
-            console.error('Failed to add message:', err);
-            setError('Failed to add message');
-        }
-    }, [session]);
+            try {
+                const updatedSession = addMessageToGuestSession(currentSession, message);
+                setError(null);
+                return updatedSession;
+            } catch (err) {
+                console.error('Failed to add message:', err);
+                setError('Failed to add message');
+                return currentSession;
+            }
+        });
+    }, []);
 
     // Update message in session
     const updateMessage = useCallback((messageId: string, updates: Partial<Message>) => {
-        if (!session) {
-            console.error('No active session to update message in');
-            return;
-        }
+        setSession(currentSession => {
+            if (!currentSession) {
+                console.error('No active session to update message in');
+                return currentSession;
+            }
 
-        try {
-            const updatedSession = updateMessageInGuestSession(session, messageId, updates);
-            setSession(updatedSession);
-            setError(null);
-        } catch (err) {
-            console.error('Failed to update message:', err);
-            setError('Failed to update message');
-        }
-    }, [session]);
+            try {
+                const updatedSession = updateMessageInGuestSession(currentSession, messageId, updates);
+                setError(null);
+                return updatedSession;
+            } catch (err) {
+                console.error('Failed to update message:', err);
+                setError('Failed to update message');
+                return currentSession;
+            }
+        });
+    }, []);
 
     // Update current level
     const updateLevel = useCallback((level: EducationLevel) => {
-        if (!session) {
-            console.error('No active session to update level in');
-            return;
-        }
+        setSession(currentSession => {
+            if (!currentSession) {
+                console.error('No active session to update level in');
+                return currentSession;
+            }
 
-        try {
-            const updatedSession = updateGuestSessionLevel(session, level);
-            setSession(updatedSession);
-            setError(null);
-        } catch (err) {
-            console.error('Failed to update level:', err);
-            setError('Failed to update level');
-        }
-    }, [session]);
+            try {
+                const updatedSession = updateGuestSessionLevel(currentSession, level);
+                setError(null);
+                return updatedSession;
+            } catch (err) {
+                console.error('Failed to update level:', err);
+                setError('Failed to update level');
+                return currentSession;
+            }
+        });
+    }, []);
 
     // Computed values
     const isGuest = session !== null;
