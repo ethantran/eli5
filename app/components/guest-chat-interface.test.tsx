@@ -4,8 +4,8 @@ import { GuestChatInterface } from './guest-chat-interface';
 import type { GuestSession, Message, EducationLevel } from '~/lib/types';
 
 // Mock the hooks and components
-vi.mock('~/lib/hooks/use-guest-session-xstate', () => ({
-    useGuestSessionXState: vi.fn(),
+vi.mock('~/lib/hooks/use-guest-session', () => ({
+    useGuestSession: vi.fn(),
 }));
 
 vi.mock('~/components/message-bubble', () => ({
@@ -63,7 +63,7 @@ vi.mock('convex/_generated/api', () => ({
     },
 }));
 
-import { useGuestSessionXState } from '~/lib/hooks/use-guest-session-xstate';
+import { useGuestSession } from '~/lib/hooks/use-guest-session';
 import { useAction } from 'convex/react';
 import { api } from 'convex/_generated/api';
 
@@ -101,7 +101,7 @@ describe('GuestChatInterface', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        vi.mocked(useGuestSessionXState).mockReturnValue(defaultHookReturn);
+        vi.mocked(useGuestSession).mockReturnValue(defaultHookReturn);
         vi.mocked(useAction).mockImplementation((action) => {
             if (action === api.guest.generateGuestExplanation) return mockGenerateExplanation;
             if (action === api.guest.regenerateAtLevel) return mockRegenerateAtLevel;
@@ -111,7 +111,7 @@ describe('GuestChatInterface', () => {
 
     describe('loading states', () => {
         it('should show loading spinner when session is loading', () => {
-            vi.mocked(useGuestSessionXState).mockReturnValue({
+            vi.mocked(useGuestSession).mockReturnValue({
                 ...defaultHookReturn,
                 session: null,
                 isLoading: true,
@@ -126,7 +126,7 @@ describe('GuestChatInterface', () => {
         });
 
         it('should show error state when session fails to load', () => {
-            vi.mocked(useGuestSessionXState).mockReturnValue({
+            vi.mocked(useGuestSession).mockReturnValue({
                 ...defaultHookReturn,
                 session: null,
                 isLoading: false,
@@ -154,7 +154,7 @@ describe('GuestChatInterface', () => {
                 lastActivityAt: Date.now(),
             };
 
-            vi.mocked(useGuestSessionXState).mockReturnValue({
+            vi.mocked(useGuestSession).mockReturnValue({
                 ...defaultHookReturn,
                 session: cleanSession,
             });
@@ -230,7 +230,7 @@ describe('GuestChatInterface', () => {
                 lastActivityAt: Date.now(),
             };
 
-            vi.mocked(useGuestSessionXState).mockReturnValue({
+            vi.mocked(useGuestSession).mockReturnValue({
                 ...defaultHookReturn,
                 session: sessionWithPending,
             });
@@ -287,7 +287,7 @@ describe('GuestChatInterface', () => {
                 lastActivityAt: Date.now(),
             };
 
-            vi.mocked(useGuestSessionXState).mockReturnValue({
+            vi.mocked(useGuestSession).mockReturnValue({
                 ...defaultHookReturn,
                 session: sessionWithPending,
             });
@@ -344,7 +344,7 @@ describe('GuestChatInterface', () => {
                 lastActivityAt: Date.now(),
             };
 
-            vi.mocked(useGuestSessionXState).mockReturnValue({
+            vi.mocked(useGuestSession).mockReturnValue({
                 ...defaultHookReturn,
                 session: sessionWithMessage,
             });
@@ -452,7 +452,7 @@ describe('GuestChatInterface', () => {
                 lastActivityAt: Date.now(),
             };
 
-            vi.mocked(useGuestSessionXState).mockReturnValue({
+            vi.mocked(useGuestSession).mockReturnValue({
                 ...defaultHookReturn,
                 session: sessionWithConvertible,
                 messageCount: 5,
@@ -511,7 +511,7 @@ describe('GuestChatInterface', () => {
                 lastActivityAt: Date.now(),
             };
 
-            vi.mocked(useGuestSessionXState).mockReturnValue({
+            vi.mocked(useGuestSession).mockReturnValue({
                 ...defaultHookReturn,
                 session: sessionWithMessages,
             });
@@ -541,7 +541,7 @@ describe('GuestChatInterface', () => {
                 lastActivityAt: Date.now(),
             };
 
-            vi.mocked(useGuestSessionXState).mockReturnValue({
+            vi.mocked(useGuestSession).mockReturnValue({
                 ...defaultHookReturn,
                 session: sessionWithMessage,
             });

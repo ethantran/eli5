@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MessageCircle, Users, Sparkles, ArrowRight, X } from 'lucide-react';
-import { useGuestSessionXState as useGuestSession } from '~/lib/hooks/use-guest-session-xstate';
+import { useGuestSession as useGuestSession } from '~/lib/hooks/use-guest-session';
 import { MessageBubble } from '~/components/message-bubble';
 import { ChatInput } from '~/components/chat-input';
 import type { EducationLevel } from '~/lib/types';

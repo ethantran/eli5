@@ -13,7 +13,7 @@ Object.defineProperty(window, 'localStorage', {
 });
 
 // Import after setting up localStorage mock
-import { useGuestSessionXState } from '../app/lib/hooks/use-guest-session-xstate';
+import { useGuestSession } from '../app/lib/hooks/use-guest-session';
 import { renderHook, act } from '@testing-library/react';
 
 describe("XState Integration - addMessage Bug Fix", () => {
@@ -27,7 +27,7 @@ describe("XState Integration - addMessage Bug Fix", () => {
     });
 
     test("addMessage should return message with correct ID", async () => {
-        const { result } = renderHook(() => useGuestSessionXState());
+        const { result } = renderHook(() => useGuestSession());
 
         // Wait for initialization
         await act(async () => {
@@ -63,7 +63,7 @@ describe("XState Integration - addMessage Bug Fix", () => {
     });
 
     test("addMessage should return null when no session", async () => {
-        const { result } = renderHook(() => useGuestSessionXState());
+        const { result } = renderHook(() => useGuestSession());
 
         // Clear the session first
         act(() => {
@@ -92,7 +92,7 @@ describe("XState Integration - addMessage Bug Fix", () => {
     });
 
     test("multiple addMessage calls should return unique IDs", async () => {
-        const { result } = renderHook(() => useGuestSessionXState());
+        const { result } = renderHook(() => useGuestSession());
 
         // Wait for initialization
         await act(async () => {
@@ -144,7 +144,7 @@ describe("XState Integration - addMessage Bug Fix", () => {
     });
 
     test("simulate exact frontend workflow", async () => {
-        const { result } = renderHook(() => useGuestSessionXState());
+        const { result } = renderHook(() => useGuestSession());
 
         // Wait for initialization
         await act(async () => {
