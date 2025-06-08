@@ -32,6 +32,8 @@ export function MessageBubble({
         setShowLevelDropdown(false);
     };
 
+    console.log('message', message);
+
     return (
         <div className={cn(
             "flex w-full mb-4",

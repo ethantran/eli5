@@ -4,8 +4,8 @@ import { GuestChatInterface } from './guest-chat-interface';
 import type { GuestSession, Message, EducationLevel } from '~/lib/types';
 
 // Mock the hooks and components
-vi.mock('~/lib/hooks/use-guest-session', () => ({
-    useGuestSession: vi.fn(),
+vi.mock('~/lib/hooks/use-guest-session-xstate', () => ({
+    useGuestSessionXState: vi.fn(),
 }));
 
 vi.mock('~/components/message-bubble', () => ({
@@ -57,19 +57,23 @@ vi.mock('convex/react', () => ({
 vi.mock('convex/_generated/api', () => ({
     api: {
         guest: {
-            generateGuestExplanation: 'mock-generate-action',
-            regenerateAtLevel: 'mock-regenerate-action',
+            generateGuestExplanation: vi.fn(),
+            regenerateAtLevel: vi.fn(),
         },
     },
 }));
 
-import { useGuestSession } from '~/lib/hooks/use-guest-session';
+import { useGuestSessionXState } from '~/lib/hooks/use-guest-session-xstate';
 import { useAction } from 'convex/react';
+import { api } from 'convex/_generated/api';
 
 describe('GuestChatInterface', () => {
     const mockAddMessage = vi.fn();
     const mockUpdateMessage = vi.fn();
     const mockUpdateLevel = vi.fn();
+    const mockInitializeSession = vi.fn();
+    const mockClearSession = vi.fn();
+    const mockMigrateSession = vi.fn();
     const mockGenerateExplanation = vi.fn();
     const mockRegenerateAtLevel = vi.fn();
 
@@ -84,29 +88,34 @@ describe('GuestChatInterface', () => {
         } as GuestSession,
         isLoading: false,
         error: null,
+        initializeSession: mockInitializeSession,
+        clearSession: mockClearSession,
+        migrateSession: mockMigrateSession,
         addMessage: mockAddMessage,
         updateMessage: mockUpdateMessage,
         updateLevel: mockUpdateLevel,
+        isGuest: true,
         messageCount: 0,
         canConvert: false,
     };
 
     beforeEach(() => {
         vi.clearAllMocks();
-        vi.mocked(useGuestSession).mockReturnValue(defaultHookReturn);
+        vi.mocked(useGuestSessionXState).mockReturnValue(defaultHookReturn);
         vi.mocked(useAction).mockImplementation((action) => {
-            if (action === 'mock-generate-action') return mockGenerateExplanation;
-            if (action === 'mock-regenerate-action') return mockRegenerateAtLevel;
+            if (action === api.guest.generateGuestExplanation) return mockGenerateExplanation;
+            if (action === api.guest.regenerateAtLevel) return mockRegenerateAtLevel;
             return vi.fn();
         });
     });
 
     describe('loading states', () => {
         it('should show loading spinner when session is loading', () => {
-            vi.mocked(useGuestSession).mockReturnValue({
+            vi.mocked(useGuestSessionXState).mockReturnValue({
                 ...defaultHookReturn,
                 session: null,
                 isLoading: true,
+                isGuest: false,
             });
 
             render(<GuestChatInterface />);
@@ -117,11 +126,12 @@ describe('GuestChatInterface', () => {
         });
 
         it('should show error state when session fails to load', () => {
-            vi.mocked(useGuestSession).mockReturnValue({
+            vi.mocked(useGuestSessionXState).mockReturnValue({
                 ...defaultHookReturn,
                 session: null,
                 isLoading: false,
                 error: 'Failed to initialize session',
+                isGuest: false,
             });
 
             render(<GuestChatInterface />);
@@ -144,7 +154,7 @@ describe('GuestChatInterface', () => {
                 lastActivityAt: Date.now(),
             };
 
-            vi.mocked(useGuestSession).mockReturnValue({
+            vi.mocked(useGuestSessionXState).mockReturnValue({
                 ...defaultHookReturn,
                 session: cleanSession,
             });
@@ -220,7 +230,7 @@ describe('GuestChatInterface', () => {
                 lastActivityAt: Date.now(),
             };
 
-            vi.mocked(useGuestSession).mockReturnValue({
+            vi.mocked(useGuestSessionXState).mockReturnValue({
                 ...defaultHookReturn,
                 session: sessionWithPending,
             });
@@ -277,7 +287,7 @@ describe('GuestChatInterface', () => {
                 lastActivityAt: Date.now(),
             };
 
-            vi.mocked(useGuestSession).mockReturnValue({
+            vi.mocked(useGuestSessionXState).mockReturnValue({
                 ...defaultHookReturn,
                 session: sessionWithPending,
             });
@@ -334,7 +344,7 @@ describe('GuestChatInterface', () => {
                 lastActivityAt: Date.now(),
             };
 
-            vi.mocked(useGuestSession).mockReturnValue({
+            vi.mocked(useGuestSessionXState).mockReturnValue({
                 ...defaultHookReturn,
                 session: sessionWithMessage,
             });
@@ -395,8 +405,56 @@ describe('GuestChatInterface', () => {
         });
 
         it('should show conversion prompt when eligible', () => {
-            vi.mocked(useGuestSession).mockReturnValue({
+            const sessionWithConvertible: GuestSession = {
+                sessionId: 'test-session',
+                messages: [
+                    {
+                        id: 'msg-1',
+                        content: 'Question 1',
+                        role: 'user',
+                        status: 'complete',
+                        createdAt: Date.now() - 5000,
+                    },
+                    {
+                        id: 'msg-2',
+                        content: 'Answer 1',
+                        role: 'assistant',
+                        status: 'complete',
+                        level: 'elementary',
+                        createdAt: Date.now() - 4000,
+                    },
+                    {
+                        id: 'msg-3',
+                        content: 'Question 2',
+                        role: 'user',
+                        status: 'complete',
+                        createdAt: Date.now() - 3000,
+                    },
+                    {
+                        id: 'msg-4',
+                        content: 'Answer 2',
+                        role: 'assistant',
+                        status: 'complete',
+                        level: 'elementary',
+                        createdAt: Date.now() - 2000,
+                    },
+                    {
+                        id: 'msg-5',
+                        content: 'Question 3',
+                        role: 'user',
+                        status: 'complete',
+                        createdAt: Date.now() - 1000,
+                    },
+                ] as Message[],
+                currentLevel: 'elementary',
+                startedAt: Date.now() - 10000,
+                messageCount: 5,
+                lastActivityAt: Date.now(),
+            };
+
+            vi.mocked(useGuestSessionXState).mockReturnValue({
                 ...defaultHookReturn,
+                session: sessionWithConvertible,
                 messageCount: 5,
                 canConvert: true,
             });
@@ -453,7 +511,7 @@ describe('GuestChatInterface', () => {
                 lastActivityAt: Date.now(),
             };
 
-            vi.mocked(useGuestSession).mockReturnValue({
+            vi.mocked(useGuestSessionXState).mockReturnValue({
                 ...defaultHookReturn,
                 session: sessionWithMessages,
             });
@@ -483,7 +541,7 @@ describe('GuestChatInterface', () => {
                 lastActivityAt: Date.now(),
             };
 
-            vi.mocked(useGuestSession).mockReturnValue({
+            vi.mocked(useGuestSessionXState).mockReturnValue({
                 ...defaultHookReturn,
                 session: sessionWithMessage,
             });

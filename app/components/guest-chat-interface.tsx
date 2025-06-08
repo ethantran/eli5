@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MessageCircle, Users, Sparkles, ArrowRight, X } from 'lucide-react';
-import { useGuestSession } from '~/lib/hooks/use-guest-session';
+import { useGuestSessionXState as useGuestSession } from '~/lib/hooks/use-guest-session-xstate';
 import { MessageBubble } from '~/components/message-bubble';
 import { ChatInput } from '~/components/chat-input';
 import type { EducationLevel } from '~/lib/types';
@@ -286,6 +286,8 @@ export function GuestChatInterface({ onSignUp, onBack }: GuestChatInterfaceProps
     }
 
     const hasMessages = session.messages.length > 0;
+
+    console.log('session', session);
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
