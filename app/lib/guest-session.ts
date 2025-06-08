@@ -70,6 +70,7 @@ export function saveGuestSession(session: GuestSession): void {
 
         // Save to localStorage
         localStorage.setItem(GUEST_SESSION_KEY, JSON.stringify(session));
+        console.log('session saved', GUEST_SESSION_KEY, session);
     } catch (error) {
         console.error('Failed to save guest session:', error);
     }
@@ -147,6 +148,8 @@ export function updateMessageInGuestSession(
         ),
         lastActivityAt: Date.now(),
     };
+
+    console.log('updatedSession', updatedSession);
 
     saveGuestSession(updatedSession);
     return updatedSession;
