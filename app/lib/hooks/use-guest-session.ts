@@ -21,7 +21,7 @@ interface UseGuestSessionReturn {
     migrateSession: () => ReturnType<typeof migrateGuestSession>;
 
     // Message management
-    addMessage: (message: Omit<Message, 'id' | 'createdAt'>) => void;
+    addMessage: (message: Omit<Message, 'id' | 'createdAt'>) => Message | null;
     updateMessage: (messageId: string, updates: Partial<Message>) => void;
 
     // Level management
@@ -94,6 +94,8 @@ export function useGuestSession(): UseGuestSessionReturn {
 
     // Add message to session
     const addMessage = useCallback((message: Omit<Message, 'id' | 'createdAt'>) => {
+        let addedMessage: Message | null = null;
+
         setSession(currentSession => {
             if (!currentSession) {
                 console.error('No active session to add message to');
@@ -101,15 +103,18 @@ export function useGuestSession(): UseGuestSessionReturn {
             }
 
             try {
-                const updatedSession = addMessageToGuestSession(currentSession, message);
+                const result = addMessageToGuestSession(currentSession, message);
+                addedMessage = result.message;
                 setError(null);
-                return updatedSession;
+                return result.session;
             } catch (err) {
                 console.error('Failed to add message:', err);
                 setError('Failed to add message');
                 return currentSession;
             }
         });
+
+        return addedMessage;
     }, []);
 
     // Update message in session

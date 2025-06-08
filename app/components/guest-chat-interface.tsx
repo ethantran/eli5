@@ -63,6 +63,8 @@ export function GuestChatInterface({ onSignUp, onBack }: GuestChatInterfaceProps
             return;
         }
 
+        let pendingMessageId: string | null = null;
+
         try {
             console.log('Setting isGenerating to true');
             setIsGenerating(true);
@@ -78,7 +80,7 @@ export function GuestChatInterface({ onSignUp, onBack }: GuestChatInterfaceProps
             addMessage(userMessage);
 
             console.log('Adding pending AI message...');
-            // Add pending AI message
+            // Add pending AI message and get its ID
             const pendingMessage = {
                 content: '',
                 role: 'assistant' as const,
@@ -86,9 +88,14 @@ export function GuestChatInterface({ onSignUp, onBack }: GuestChatInterfaceProps
                 status: 'pending' as const,
             };
             console.log('Pending message to add:', pendingMessage);
-            addMessage(pendingMessage);
+            const addedMessage = addMessage(pendingMessage);
 
-            console.log('Current messages after adding:', session.messages.length);
+            if (!addedMessage) {
+                throw new Error('Failed to add pending message');
+            }
+
+            pendingMessageId = addedMessage.id;
+            console.log('Added pending message with ID:', pendingMessageId);
 
             console.log('Calling generateExplanation...');
             // Generate AI response
@@ -105,25 +112,18 @@ export function GuestChatInterface({ onSignUp, onBack }: GuestChatInterfaceProps
                 metadata: response.metadata
             });
 
-            // Update the pending message with the response
-            const messages = session.messages;
-            console.log('Current messages before update:', messages.length);
-            const pendingMessageId = messages[messages.length - 1]?.id;
+            // Update the pending message with the response using the correct ID
             console.log('Pending message ID to update:', pendingMessageId);
 
-            if (pendingMessageId) {
-                console.log('Updating pending message with response...');
-                const updateData = {
-                    content: response.content,
-                    status: 'complete' as const,
-                    metadata: response.metadata,
-                };
-                console.log('Update data:', updateData);
-                updateMessage(pendingMessageId, updateData);
-                console.log('Message update completed');
-            } else {
-                console.error('No pending message ID found to update!');
-            }
+            console.log('Updating pending message with response...');
+            const updateData = {
+                content: response.content,
+                status: 'complete' as const,
+                metadata: response.metadata,
+            };
+            console.log('Update data:', updateData);
+            updateMessage(pendingMessageId, updateData);
+            console.log('Message update completed');
         } catch (error) {
             console.error('=== Error in handleSendMessage ===');
             console.error('Error details:', {
@@ -133,10 +133,7 @@ export function GuestChatInterface({ onSignUp, onBack }: GuestChatInterfaceProps
                 type: typeof error
             });
 
-            // Update with error state
-            const messages = session?.messages || [];
-            console.log('Messages for error handling:', messages.length);
-            const pendingMessageId = messages[messages.length - 1]?.id;
+            // Update with error state using the pending message ID
             console.log('Pending message ID for error update:', pendingMessageId);
 
             if (pendingMessageId) {

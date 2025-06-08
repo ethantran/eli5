@@ -187,13 +187,15 @@ describe('guest-session utilities', () => {
                 status: 'complete',
             };
 
-            const updatedSession = addMessageToGuestSession(session, messageData);
+            const result = addMessageToGuestSession(session, messageData);
 
-            expect(updatedSession.messages).toHaveLength(1);
-            expect(updatedSession.messages[0]).toMatchObject(messageData);
-            expect(updatedSession.messages[0].id).toBeDefined();
-            expect(updatedSession.messages[0].createdAt).toBeDefined();
-            expect(updatedSession.messageCount).toBe(1);
+            expect(result.session.messages).toHaveLength(1);
+            expect(result.session.messages[0]).toMatchObject(messageData);
+            expect(result.session.messages[0].id).toBeDefined();
+            expect(result.session.messages[0].createdAt).toBeDefined();
+            expect(result.session.messageCount).toBe(1);
+            expect(result.message).toMatchObject(messageData);
+            expect(result.message.id).toBeDefined();
         });
 
         it('should generate unique IDs for messages', () => {
@@ -212,10 +214,10 @@ describe('guest-session utilities', () => {
                 status: 'complete',
             };
 
-            const session1 = addMessageToGuestSession(session, messageData);
-            const session2 = addMessageToGuestSession(session1, messageData);
+            const result1 = addMessageToGuestSession(session, messageData);
+            const result2 = addMessageToGuestSession(result1.session, messageData);
 
-            expect(session2.messages[0].id).not.toBe(session2.messages[1].id);
+            expect(result2.session.messages[0].id).not.toBe(result2.session.messages[1].id);
         });
     });
 

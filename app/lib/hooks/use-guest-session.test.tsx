@@ -42,7 +42,7 @@ vi.mock('../guest-session', () => ({
             lastActivityAt: Date.now(),
         };
         mockSession = updatedSession;
-        return updatedSession;
+        return { session: updatedSession, message: newMessage };
     }),
     updateMessageInGuestSession: vi.fn((session: GuestSession, messageId: string, updates: Partial<Message>) => {
         const updatedSession = {

@@ -114,7 +114,7 @@ export function clearGuestSession(): void {
 export function addMessageToGuestSession(
     session: GuestSession,
     message: Omit<Message, 'id' | 'createdAt'>
-): GuestSession {
+): { session: GuestSession; message: Message } {
     const newMessage: Message = {
         ...message,
         id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -129,7 +129,7 @@ export function addMessageToGuestSession(
     };
 
     saveGuestSession(updatedSession);
-    return updatedSession;
+    return { session: updatedSession, message: newMessage };
 }
 
 /**
