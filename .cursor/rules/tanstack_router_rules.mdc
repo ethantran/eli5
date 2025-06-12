@@ -1,6 +1,6 @@
 ---
-description:
-globs:
+description: 
+globs: app/routes/*
 alwaysApply: false
 ---
 # TanStack Router Rules
@@ -31,7 +31,7 @@ When debugging routing issues:
 5. **Complex logic** - Only then dive into advanced routing logic
 
 ## Documentation References
-- Always reference [TanStack Router docs](https://tanstack.com/router/v1/docs/framework/react/routing/routing-concepts) for file naming examples
+- Always reference [TanStack Router docs](mdc:https:/tanstack.com/router/v1/docs/framework/react/routing/routing-concepts) for file naming examples
 - Pay attention to actual file names in documentation examples, not just the explanatory text
 - When user provides documentation, carefully review the specific examples shown
 

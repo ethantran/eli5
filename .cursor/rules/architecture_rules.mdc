@@ -1,6 +1,6 @@
 ---
 description: 
-globs: 
+globs: *.tsx
 alwaysApply: false
 ---
 # ELI5 Application Architecture Rules

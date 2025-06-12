@@ -1,15 +1,22 @@
-import { useEffect, useRef } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
-import { Check, X } from 'lucide-react';
+import { Check } from 'lucide-react';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { EDUCATION_LEVELS, LEVEL_DEFINITIONS, type EducationLevel } from '~/lib/types';
 import { cn } from '~/lib/utils';
 
 interface LevelDropdownProps {
     currentLevel: EducationLevel;
     onSelect: (level: EducationLevel) => void;
-    onClose: () => void;
+    triggerContent?: React.ReactNode;
     isGuest?: boolean;
     className?: string;
 }
@@ -17,131 +24,68 @@ interface LevelDropdownProps {
 export function LevelDropdown({
     currentLevel,
     onSelect,
-    onClose,
+    triggerContent,
     isGuest = false,
     className
 }: LevelDropdownProps) {
-    const dropdownRef = useRef<HTMLDivElement>(null);
-
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                onClose();
-            }
-        }
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [onClose]);
-
-    // Close dropdown on escape key
-    useEffect(() => {
-        function handleEscape(event: KeyboardEvent) {
-            if (event.key === 'Escape') {
-                onClose();
-            }
-        }
-
-        document.addEventListener('keydown', handleEscape);
-        return () => document.removeEventListener('keydown', handleEscape);
-    }, [onClose]);
-
     const handleLevelSelect = (level: EducationLevel) => {
+        console.log('Level selected:', level);
         if (level !== currentLevel) {
             onSelect(level);
-        } else {
-            onClose();
         }
     };
 
+    const handleOpenChange = (open: boolean) => {
+        console.log('Dropdown open state changed:', open);
+    };
+
+    console.log('LevelDropdown rendering with triggerContent:', !!triggerContent);
+
     return (
-        <>
-            {/* Backdrop */}
-            <div className="fixed inset-0 bg-black/20 z-40" onClick={onClose} />
-
-            {/* Dropdown */}
-            <Card
-                ref={dropdownRef}
-                className={cn(
-                    "absolute top-full left-0 right-0 mt-2 z-50 shadow-lg border-gray-200",
-                    "bg-white max-h-[400px] overflow-y-auto",
-                    className
+        <DropdownMenu onOpenChange={handleOpenChange}>
+            <DropdownMenuTrigger>
+                {triggerContent || (
+                    <Button variant="outline" size="sm">
+                        Level: {currentLevel}
+                    </Button>
                 )}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+                className="w-56 bg-white border shadow-lg"
+                sideOffset={4}
             >
-                <div className="p-3">
-                    {/* Header */}
-                    <div className="flex items-center justify-between mb-3 pb-2 border-b">
-                        <h3 className="font-medium text-gray-900">Choose explanation level</h3>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={onClose}
-                            className="h-6 w-6 p-0"
-                        >
-                            <X className="h-4 w-4" />
-                        </Button>
-                    </div>
+                <DropdownMenuLabel>Choose level</DropdownMenuLabel>
+                <DropdownMenuSeparator />
 
-                    {/* Guest Notice */}
-                    {isGuest && (
-                        <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
-                            💡 You're in guest mode. Sign up to save your level preferences!
+                {isGuest && (
+                    <>
+                        <div className="px-2 py-2">
+                            <div className="p-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
+                                💡 You're in guest mode. Sign up to save your level preferences!
+                            </div>
                         </div>
-                    )}
+                        <DropdownMenuSeparator />
+                    </>
+                )}
 
-                    {/* Level Options */}
-                    <div className="space-y-2">
-                        {EDUCATION_LEVELS.map((level) => {
-                            const definition = LEVEL_DEFINITIONS[level];
-                            const isSelected = level === currentLevel;
+                {EDUCATION_LEVELS.map((level) => {
+                    const definition = LEVEL_DEFINITIONS[level];
+                    const isSelected = level === currentLevel;
 
-                            return (
-                                <Button
-                                    key={level}
-                                    variant={isSelected ? "default" : "ghost"}
-                                    className={cn(
-                                        "w-full justify-start p-3 h-auto",
-                                        isSelected && "bg-blue-500 text-white hover:bg-blue-600"
-                                    )}
-                                    onClick={() => handleLevelSelect(level)}
-                                >
-                                    <div className="flex items-center justify-between w-full">
-                                        <div className="flex items-center space-x-3">
-                                            {isSelected && <Check className="h-4 w-4 shrink-0" />}
-                                            <div className="text-left">
-                                                <div className="flex items-center space-x-2">
-                                                    <span className="font-medium">{definition.label}</span>
-                                                    <Badge
-                                                        variant="secondary"
-                                                        className={cn(
-                                                            "text-xs",
-                                                            isSelected ? "bg-white/20 text-white" : ""
-                                                        )}
-                                                    >
-                                                        {definition.ageRange}
-                                                    </Badge>
-                                                </div>
-                                                <div className={cn(
-                                                    "text-xs mt-1 opacity-80",
-                                                    isSelected ? "text-white" : "text-gray-500"
-                                                )}>
-                                                    {definition.description}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </Button>
-                            );
-                        })}
-                    </div>
-
-                    {/* Footer */}
-                    <div className="mt-3 pt-2 border-t text-xs text-gray-500 text-center">
-                        Click any level to regenerate the explanation
-                    </div>
-                </div>
-            </Card>
-        </>
+                    return (
+                        <DropdownMenuItem
+                            key={level}
+                            onClick={() => handleLevelSelect(level)}
+                        >
+                            {isSelected && <Check className="mr-2 h-4 w-4" />}
+                            <div className="flex flex-col">
+                                <span className="font-medium">{definition.label}</span>
+                                <span className="text-xs text-gray-500">{definition.ageRange}</span>
+                            </div>
+                        </DropdownMenuItem>
+                    );
+                })}
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
 } 

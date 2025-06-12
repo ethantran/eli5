@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -20,7 +19,6 @@ export function MessageBubble({
     isGuest = false,
     className
 }: MessageBubbleProps) {
-    const [showLevelDropdown, setShowLevelDropdown] = useState(false);
     const isUser = message.role === 'user';
     const isAssistant = message.role === 'assistant';
     const canChangeLevel = isAssistant && onLevelChange && message.level;
@@ -29,7 +27,6 @@ export function MessageBubble({
         if (onLevelChange && message.level) {
             onLevelChange(message.id, newLevel);
         }
-        setShowLevelDropdown(false);
     };
 
     console.log('message', message);
@@ -64,13 +61,7 @@ export function MessageBubble({
                         message.status === 'pending' && "opacity-70",
                         message.status === 'error' && "border-red-300 bg-red-50"
                     )}>
-                        <div
-                            className={cn(
-                                "p-4 cursor-pointer",
-                                canChangeLevel && "hover:bg-gray-50"
-                            )}
-                            onClick={() => canChangeLevel && setShowLevelDropdown(true)}
-                        >
+                        <div className="p-4">
                             {/* Message Content */}
                             <div className={cn(
                                 "whitespace-pre-wrap break-words",
@@ -97,7 +88,7 @@ export function MessageBubble({
                             {/* Message Metadata */}
                             <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">
                                 <div className="flex items-center space-x-2">
-                                    {/* Level Badge */}
+                                    {/* Static Level Badge - shows what level this message was generated at */}
                                     {message.level && (
                                         <Badge className={cn(
                                             LEVEL_DEFINITIONS[message.level].color,
@@ -117,29 +108,45 @@ export function MessageBubble({
                                     </div>
                                 </div>
 
-                                {/* Level Change Hint */}
+                                {/* Change Level Dropdown - separate button for changing level */}
                                 {canChangeLevel && (
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="text-xs text-gray-400 hover:text-gray-600 h-auto p-1"
-                                    >
-                                        <ChevronDown className="w-3 h-3 mr-1" />
-                                        Change level
-                                    </Button>
+                                    <LevelDropdown
+                                        currentLevel={message.level!}
+                                        onSelect={handleLevelChange}
+                                        isGuest={isGuest}
+                                        triggerContent={
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-xs text-gray-400 hover:text-gray-600 h-auto p-1"
+                                            >
+                                                <ChevronDown className="w-3 h-3 mr-1" />
+                                                Change level
+                                            </Button>
+                                        }
+                                    />
+                                )}
+
+                                {/* Set Level hint for messages without level */}
+                                {!message.level && onLevelChange && (
+                                    <LevelDropdown
+                                        currentLevel="elementary" // default starting point
+                                        onSelect={handleLevelChange}
+                                        isGuest={isGuest}
+                                        triggerContent={
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-xs text-gray-400 hover:text-gray-600 h-auto p-1"
+                                            >
+                                                <ChevronDown className="w-3 h-3 mr-1" />
+                                                Set level
+                                            </Button>
+                                        }
+                                    />
                                 )}
                             </div>
                         </div>
-
-                        {/* Level Dropdown */}
-                        {showLevelDropdown && canChangeLevel && (
-                            <LevelDropdown
-                                currentLevel={message.level!}
-                                onSelect={handleLevelChange}
-                                onClose={() => setShowLevelDropdown(false)}
-                                isGuest={isGuest}
-                            />
-                        )}
                     </Card>
                 </div>
             </div>

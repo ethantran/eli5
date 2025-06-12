@@ -5,14 +5,16 @@ import type { Message, EducationLevel } from '~/lib/types';
 
 // Mock the level dropdown component
 vi.mock('~/components/level-dropdown', () => ({
-    LevelDropdown: ({ currentLevel, onSelect, onClose }: {
+    LevelDropdown: ({ currentLevel, onSelect, triggerContent }: {
         currentLevel: EducationLevel;
         onSelect: (level: EducationLevel) => void;
-        onClose: () => void;
+        triggerContent?: React.ReactNode;
     }) => (
         <div data-testid="level-dropdown">
-            <button onClick={() => onSelect('college')}>College</button>
-            <button onClick={onClose}>Close</button>
+            {triggerContent || <span>Level: {currentLevel}</span>}
+            <div data-testid="dropdown-content">
+                <button onClick={() => onSelect('college')}>College</button>
+            </div>
         </div>
     ),
 }));
@@ -67,14 +69,25 @@ describe('MessageBubble', () => {
             );
 
             expect(screen.getByText(/Quantum physics is the study/)).toBeDefined();
-            expect(screen.getByText('Elementary')).toBeDefined();
-            expect(screen.getByText('Change level')).toBeDefined();
+            expect(screen.getByTestId('level-dropdown')).toBeDefined();
         });
 
-        it('should display level badge', () => {
+        it('should display level dropdown when level change is available', () => {
+            render(
+                <MessageBubble
+                    message={assistantMessage}
+                    onLevelChange={mockOnLevelChange}
+                />
+            );
+
+            expect(screen.getByTestId('level-dropdown')).toBeDefined();
+        });
+
+        it('should display level badge when no level change handler provided', () => {
             render(<MessageBubble message={assistantMessage} />);
 
             expect(screen.getByText('Elementary')).toBeDefined();
+            expect(screen.queryByTestId('level-dropdown')).toBeNull();
         });
 
         it('should display timestamp', () => {
@@ -114,7 +127,7 @@ describe('MessageBubble', () => {
             expect(messageCard).toBeDefined();
         });
 
-        it('should not allow level changes on pending messages', () => {
+        it('should show level dropdown for pending messages with level change handler', () => {
             render(
                 <MessageBubble
                     message={pendingMessage}
@@ -122,16 +135,8 @@ describe('MessageBubble', () => {
                 />
             );
 
-            // Pending messages should not have cursor-pointer when no level can be changed
-            const messageCard = screen.getByText('Generating explanation...').closest('.p-4');
-            expect(messageCard).toBeDefined();
-
-            // Try to click - should not open dropdown
-            if (messageCard) {
-                fireEvent.click(messageCard);
-            }
-
-            expect(screen.queryByTestId('level-dropdown')).toBeNull();
+            // Should still show level dropdown even for pending messages
+            expect(screen.getByTestId('level-dropdown')).toBeDefined();
         });
     });
 
@@ -176,18 +181,13 @@ describe('MessageBubble', () => {
             createdAt: Date.now(),
         };
 
-        it('should open level dropdown when clicking on assistant message', () => {
+        it('should show level dropdown for assistant messages with level change handler', () => {
             render(
                 <MessageBubble
                     message={assistantMessage}
                     onLevelChange={mockOnLevelChange}
                 />
             );
-
-            const messageCard = screen.getByText('Quantum physics explanation').closest('.cursor-pointer');
-            expect(messageCard).toBeDefined();
-
-            fireEvent.click(messageCard!);
 
             expect(screen.getByTestId('level-dropdown')).toBeDefined();
         });
@@ -200,11 +200,7 @@ describe('MessageBubble', () => {
                 />
             );
 
-            // Open dropdown
-            const messageCard = screen.getByText('Quantum physics explanation').closest('.cursor-pointer');
-            fireEvent.click(messageCard!);
-
-            // Select new level
+            // Select new level from dropdown
             const collegeButton = screen.getByText('College');
             fireEvent.click(collegeButton);
 
@@ -227,7 +223,26 @@ describe('MessageBubble', () => {
                 />
             );
 
-            expect(screen.queryByText('Change level')).toBeNull();
+            expect(screen.queryByTestId('level-dropdown')).toBeNull();
+        });
+
+        it('should show "Set level" hint for messages without levels', () => {
+            const messageWithoutLevel: Message = {
+                id: 'assistant-msg-2',
+                content: 'Explanation without level',
+                role: 'assistant',
+                status: 'complete',
+                createdAt: Date.now(),
+            };
+
+            render(
+                <MessageBubble
+                    message={messageWithoutLevel}
+                    onLevelChange={mockOnLevelChange}
+                />
+            );
+
+            expect(screen.getByText('Set level')).toBeDefined();
         });
     });
 
