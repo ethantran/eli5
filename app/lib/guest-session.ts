@@ -120,19 +120,11 @@ export function addMessageToGuestSession(
     const randomPart = Math.random().toString(36).substr(2, 9);
     const newMessageId = `msg-${timestamp}-${randomPart}`;
 
-    console.log('addMessageToGuestSession called:');
-    console.log('- Input message:', { ...message, content: message.content.substring(0, 50) + '...' });
-    console.log('- Generated ID parts:', { timestamp, randomPart });
-    console.log('- Final message ID:', newMessageId);
-    console.log('- Current session messages before add:', session.messages.map(m => ({ id: m.id, role: m.role, status: m.status })));
-
     const newMessage: Message = {
         ...message,
         id: newMessageId,
         createdAt: timestamp,
     };
-
-    console.log('- Complete new message:', { ...newMessage, content: newMessage.content.substring(0, 50) + '...' });
 
     const updatedSession: GuestSession = {
         ...session,
@@ -141,11 +133,7 @@ export function addMessageToGuestSession(
         lastActivityAt: timestamp,
     };
 
-    console.log('- Session messages after add:', updatedSession.messages.map(m => ({ id: m.id, role: m.role, status: m.status })));
-
     saveGuestSession(updatedSession);
-
-    console.log('- Returning message with ID:', newMessage.id);
     return { session: updatedSession, message: newMessage };
 }
 
@@ -157,20 +145,11 @@ export function updateMessageInGuestSession(
     messageId: string,
     updates: Partial<Message>
 ): GuestSession {
-    console.log('updateMessageInGuestSession called with:');
-    console.log('- messageId:', messageId);
-    console.log('- updates:', updates);
-    console.log('- session message IDs:', session.messages.map(m => m.id));
-
     // Check if message exists
     const messageExists = session.messages.some(msg => msg.id === messageId);
     if (!messageExists) {
         console.error(`Message with ID ${messageId} not found in session!`);
         console.error('Available message IDs:', session.messages.map(m => ({ id: m.id, role: m.role, status: m.status })));
-
-        // Use debug helper to understand the mismatch
-        debugFindMessage(session, messageId);
-
         return session; // Return unchanged session if message not found
     }
 
@@ -178,24 +157,12 @@ export function updateMessageInGuestSession(
         ...session,
         messages: session.messages.map(msg => {
             if (msg.id === messageId) {
-                const updatedMessage = { ...msg, ...updates };
-                console.log('Updating message:', {
-                    before: { id: msg.id, status: msg.status, content: msg.content.substring(0, 50) + '...' },
-                    after: { id: updatedMessage.id, status: updatedMessage.status, content: updatedMessage.content.substring(0, 50) + '...' }
-                });
-                return updatedMessage;
+                return { ...msg, ...updates };
             }
             return msg;
         }),
         lastActivityAt: Date.now(),
     };
-
-    console.log('Final updated session messages:', updatedSession.messages.map(m => ({
-        id: m.id,
-        role: m.role,
-        status: m.status,
-        contentLength: m.content.length
-    })));
 
     saveGuestSession(updatedSession);
     return updatedSession;
@@ -273,49 +240,4 @@ export function migrateGuestSession(): {
         clearGuestSession();
     }
     return sessionData;
-}
-
-/**
- * Debug helper to find message by ID and report mismatches
- */
-export function debugFindMessage(session: GuestSession, targetId: string): void {
-    console.log('=== DEBUG MESSAGE LOOKUP ===');
-    console.log('Target ID:', targetId);
-    console.log('All message IDs in session:', session.messages.map(m => m.id));
-
-    // Check for exact match
-    const exactMatch = session.messages.find(m => m.id === targetId);
-    console.log('Exact match found:', !!exactMatch);
-
-    if (!exactMatch) {
-        // Look for similar IDs (same timestamp part)
-        const targetParts = targetId.split('-');
-        const targetTimestamp = targetParts[1];
-
-        console.log('Target timestamp part:', targetTimestamp);
-
-        const similarIds = session.messages
-            .map(m => ({
-                id: m.id,
-                timestamp: m.id.split('-')[1],
-                random: m.id.split('-')[2],
-                role: m.role,
-                status: m.status
-            }))
-            .filter(m => m.timestamp === targetTimestamp);
-
-        console.log('Messages with same timestamp:', similarIds);
-
-        // Character-by-character comparison of closest match
-        if (similarIds.length > 0) {
-            const closest = similarIds[0];
-            console.log('Character comparison with closest:');
-            console.log('Target:  ', targetId);
-            console.log('Closest: ', closest.id);
-            console.log('Match:   ', targetId.split('').map((char, i) =>
-                char === closest.id[i] ? char : '✗'
-            ).join(''));
-        }
-    }
-    console.log('=== END DEBUG MESSAGE LOOKUP ===');
 } 

@@ -3,13 +3,11 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MessageCircle, Users, Sparkles, ArrowRight, X } from 'lucide-react';
-import { useGuestSession as useGuestSession } from '~/lib/hooks/use-guest-session';
+import { useGuestSessionWithConvex } from '~/lib/hooks/use-guest-session-with-convex';
 import { MessageBubble } from '~/components/message-bubble';
 import { ChatInput } from '~/components/chat-input';
 import type { EducationLevel } from '~/lib/types';
 import { cn } from '~/lib/utils';
-import { useAction } from 'convex/react';
-import { api } from 'convex/_generated/api';
 
 interface GuestChatInterfaceProps {
     onSignUp?: () => void;
@@ -20,20 +18,16 @@ export function GuestChatInterface({ onSignUp, onBack }: GuestChatInterfaceProps
     const {
         session,
         isLoading: sessionLoading,
+        isGenerating,
         error: sessionError,
-        addMessage,
-        updateMessage,
-        updateLevel,
+        sendMessage,
+        regenerateMessage,
         messageCount,
         canConvert,
-    } = useGuestSession();
+    } = useGuestSessionWithConvex();
 
-    const [isGenerating, setIsGenerating] = useState(false);
     const [showConversionPrompt, setShowConversionPrompt] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-
-    const generateExplanation = useAction(api.guest.generateGuestExplanation);
-    const regenerateAtLevel = useAction(api.guest.regenerateAtLevel);
 
     // Auto-scroll to bottom when new messages arrive
     useEffect(() => {
@@ -47,212 +41,15 @@ export function GuestChatInterface({ onSignUp, onBack }: GuestChatInterfaceProps
         }
     }, [canConvert, showConversionPrompt]);
 
-    const handleSendMessage = async (content: string) => {
-        console.log('=== handleSendMessage called ===');
-        console.log('Input:', { content: content.substring(0, 100), contentLength: content.length });
-        console.log('Current state:', {
-            hasSession: !!session,
-            isGenerating,
-            sessionId: session?.sessionId,
-            currentLevel: session?.currentLevel,
-            messageCount: session?.messages?.length
-        });
-
-        if (!session || isGenerating) {
-            console.log('Early return - no session or already generating');
-            return;
-        }
-
-        let pendingMessageId: string | null = null;
-
-        try {
-            console.log('Setting isGenerating to true');
-            setIsGenerating(true);
-
-            console.log('Adding user message...');
-            // Add user message
-            const userMessage = {
-                content,
-                role: 'user' as const,
-                status: 'complete' as const,
-            };
-            console.log('User message to add:', userMessage);
-            addMessage(userMessage);
-
-            console.log('Adding pending AI message...');
-            // Add pending AI message and get its ID
-            const pendingMessage = {
-                content: '',
-                role: 'assistant' as const,
-                level: session.currentLevel,
-                status: 'pending' as const,
-            };
-            console.log('Pending message to add:', pendingMessage);
-            const addedMessage = addMessage(pendingMessage);
-
-            if (!addedMessage) {
-                throw new Error('Failed to add pending message');
-            }
-
-            pendingMessageId = addedMessage.id;
-            console.log('Added pending message with ID:', pendingMessageId);
-
-            console.log('Calling generateExplanation...');
-            // Generate AI response
-            const response = await generateExplanation({
-                content,
-                level: session.currentLevel,
-                sessionId: session.sessionId,
-            });
-
-            console.log('Generated response received:', {
-                id: response.id,
-                contentLength: response.content.length,
-                level: response.level,
-                metadata: response.metadata
-            });
-
-            // Update the pending message with the response using the correct ID
-            console.log('Pending message ID to update:', pendingMessageId);
-
-            console.log('Updating pending message with response...');
-            const updateData = {
-                content: response.content,
-                status: 'complete' as const,
-                metadata: response.metadata,
-            };
-            console.log('Update data:', updateData);
-            updateMessage(pendingMessageId, updateData);
-            console.log('Message update completed');
-        } catch (error) {
-            console.error('=== Error in handleSendMessage ===');
-            console.error('Error details:', {
-                error: error,
-                message: error instanceof Error ? error.message : 'Unknown error',
-                stack: error instanceof Error ? error.stack : undefined,
-                type: typeof error
-            });
-
-            // Update with error state using the pending message ID
-            console.log('Pending message ID for error update:', pendingMessageId);
-
-            if (pendingMessageId) {
-                console.log('Updating message with error state...');
-                const errorUpdate = {
-                    content: 'Sorry, I encountered an error while generating your explanation. Please try again.',
-                    status: 'error' as const,
-                    errorMessage: error instanceof Error ? error.message : 'Unknown error',
-                };
-                console.log('Error update data:', errorUpdate);
-                updateMessage(pendingMessageId, errorUpdate);
-                console.log('Error update completed');
-            } else {
-                console.error('No pending message ID found for error update!');
-            }
-        } finally {
-            console.log('Setting isGenerating to false');
-            setIsGenerating(false);
-            console.log('handleSendMessage completed');
-        }
+    // Simplified handlers - just dispatch events!
+    const handleSendMessage = (content: string) => {
+        console.log('Sending message:', content);
+        sendMessage(content);
     };
 
-    const handleLevelChange = async (messageId: string, newLevel: EducationLevel) => {
-        console.log('=== handleLevelChange called ===');
-        console.log('Input:', { messageId, newLevel });
-        console.log('Current state:', {
-            hasSession: !!session,
-            isGenerating,
-            sessionId: session?.sessionId,
-            currentLevel: session?.currentLevel,
-            messageCount: session?.messages?.length
-        });
-
-        if (!session || isGenerating) {
-            console.log('Early return - no session or already generating');
-            return;
-        }
-
-        try {
-            console.log('Setting isGenerating to true');
-            setIsGenerating(true);
-
-            console.log('Updating level...');
-            updateLevel(newLevel);
-
-            // Find the original user message for this response
-            console.log('Finding original user message...');
-            const messageIndex = session.messages.findIndex(m => m.id === messageId);
-            console.log('Message index:', messageIndex);
-
-            const userMessage = session.messages
-                .slice(0, messageIndex)
-                .reverse()
-                .find(m => m.role === 'user');
-
-            console.log('Found user message:', userMessage ? {
-                id: userMessage.id,
-                content: userMessage.content.substring(0, 100),
-                role: userMessage.role
-            } : 'NOT FOUND');
-
-            if (!userMessage) {
-                console.error('No user message found for regeneration');
-                return;
-            }
-
-            // Update current message to pending
-            console.log('Updating message to pending state...');
-            updateMessage(messageId, {
-                status: 'pending' as const,
-                level: newLevel,
-            });
-
-            console.log('Calling regenerateAtLevel...');
-            // Regenerate at new level
-            const response = await regenerateAtLevel({
-                originalContent: userMessage.content,
-                newLevel,
-                sessionId: session.sessionId,
-            });
-
-            console.log('Regeneration response received:', {
-                id: response.id,
-                contentLength: response.content.length,
-                level: response.level,
-                metadata: response.metadata
-            });
-
-            // Update with new response
-            console.log('Updating message with new response...');
-            const finalUpdate = {
-                content: response.content,
-                level: newLevel,
-                status: 'complete' as const,
-                metadata: response.metadata,
-            };
-            console.log('Final update data:', finalUpdate);
-            updateMessage(messageId, finalUpdate);
-            console.log('Level change update completed');
-        } catch (error) {
-            console.error('=== Error in handleLevelChange ===');
-            console.error('Error details:', {
-                error: error,
-                message: error instanceof Error ? error.message : 'Unknown error',
-                stack: error instanceof Error ? error.stack : undefined,
-                type: typeof error
-            });
-
-            console.log('Updating message with error state...');
-            updateMessage(messageId, {
-                status: 'error' as const,
-                errorMessage: error instanceof Error ? error.message : 'Failed to regenerate explanation',
-            });
-            console.log('Error update completed');
-        } finally {
-            console.log('Setting isGenerating to false');
-            setIsGenerating(false);
-            console.log('handleLevelChange completed');
-        }
+    const handleLevelChange = (messageId: string, newLevel: EducationLevel) => {
+        console.log('Changing level:', { messageId, newLevel });
+        regenerateMessage(messageId, newLevel);
     };
 
     if (sessionLoading) {
