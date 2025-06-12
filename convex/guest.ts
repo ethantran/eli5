@@ -1,11 +1,132 @@
 import { action } from './_generated/server';
 import { v } from 'convex/values';
 import Anthropic from '@anthropic-ai/sdk';
+import { Effect, Context, Layer, Data, Logger } from 'effect';
 
-// Initialize Anthropic client with environment variable
-const anthropic = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY,
-});
+// Error types for better error management
+export class AnthropicConfigError extends Data.TaggedError("AnthropicConfigError")<{
+    readonly message: string;
+}> { }
+
+export class AnthropicApiError extends Data.TaggedError("AnthropicApiError")<{
+    readonly message: string;
+    readonly statusCode?: number;
+    readonly errorType?: string;
+}> { }
+
+export class ContentValidationError extends Data.TaggedError("ContentValidationError")<{
+    readonly message: string;
+}> { }
+
+// Configuration service interface for requirements management
+export interface ConfigService {
+    readonly getAnthropicApiKey: Effect.Effect<string, AnthropicConfigError>;
+}
+
+export const ConfigService = Context.GenericTag<ConfigService>("ConfigService");
+
+// Anthropic service interface
+export interface AnthropicService {
+    readonly generateCompletion: (
+        prompt: string
+    ) => Effect.Effect<string, AnthropicApiError | AnthropicConfigError>;
+}
+
+export const AnthropicService = Context.GenericTag<AnthropicService>("AnthropicService");
+
+// Configuration service implementation
+const ConfigServiceLive = Layer.succeed(
+    ConfigService,
+    ConfigService.of({
+        getAnthropicApiKey: Effect.gen(function* () {
+            const apiKey = process.env.ANTHROPIC_API_KEY;
+            if (!apiKey) {
+                yield* Effect.logError("ANTHROPIC_API_KEY environment variable not found");
+                return yield* new AnthropicConfigError({
+                    message: "ANTHROPIC_API_KEY environment variable not configured"
+                });
+            }
+            yield* Effect.log(`API key configured with prefix: ${apiKey.substring(0, 10)}...`);
+            return apiKey;
+        })
+    })
+);
+
+// Anthropic service implementation with resource management
+const AnthropicServiceLive = Layer.effect(
+    AnthropicService,
+    Effect.gen(function* () {
+        const config = yield* ConfigService;
+
+        return AnthropicService.of({
+            generateCompletion: (prompt) => Effect.gen(function* () {
+                const apiKey = yield* config.getAnthropicApiKey;
+
+                // Resource management: create and manage client
+                yield* Effect.log("Creating Anthropic client");
+                const anthropic = new Anthropic({ apiKey });
+
+                const requestConfig = {
+                    model: 'claude-3-5-sonnet-20241022',
+                    max_tokens: 1000,
+                    temperature: 0.7,
+                    messages: [{ role: 'user' as const, content: prompt }]
+                };
+
+                yield* Effect.log(`Making API request - prompt length: ${prompt.length}`);
+
+                const response = yield* Effect.tryPromise({
+                    try: () => anthropic.messages.create(requestConfig),
+                    catch: (error) => {
+                        if (error instanceof Error) {
+                            if (error.message.includes('rate_limit')) {
+                                return new AnthropicApiError({
+                                    message: 'Rate limit exceeded',
+                                    errorType: 'rate_limit'
+                                });
+                            } else if (error.message.includes('invalid_api_key') || error.message.includes('authentication')) {
+                                return new AnthropicApiError({
+                                    message: 'Invalid API key or authentication failed',
+                                    errorType: 'authentication'
+                                });
+                            } else if (error.message.includes('content_policy')) {
+                                return new AnthropicApiError({
+                                    message: 'Content violates policy restrictions',
+                                    errorType: 'content_policy'
+                                });
+                            }
+                        }
+
+                        return new AnthropicApiError({
+                            message: error instanceof Error ? error.message : 'Unknown API error'
+                        });
+                    }
+                });
+
+                yield* Effect.log(`API response received - content blocks: ${response.content.length}`);
+
+                // Extract and validate text content
+                const textContent = response.content
+                    .filter((block: any) => block.type === 'text')
+                    .map((block: any) => block.text)
+                    .join('\n');
+
+                if (!textContent.trim()) {
+                    yield* Effect.logError("No text content in Claude response");
+                    return yield* new AnthropicApiError({
+                        message: "No text content found in Claude response"
+                    });
+                }
+
+                yield* Effect.log(`Generated text content: ${textContent.length} characters`);
+                return textContent;
+            })
+        });
+    })
+).pipe(Layer.provide(ConfigServiceLive));
+
+// Main service layer
+const MainLayer = AnthropicServiceLive;
 
 // Level-specific prompts for Claude
 function buildLevelPrompt(content: string, level: string): string {
@@ -37,65 +158,36 @@ Please provide a clear, engaging explanation at the requested level. Make sure y
     return fullPrompt;
 }
 
-// Generate explanation using Claude AI
-async function generateClaudeExplanation(content: string, level: string): Promise<string> {
-    console.log(`Starting Claude API call for level: ${level}`);
-    console.log(`API Key available: ${!!process.env.ANTHROPIC_API_KEY}`);
-    console.log(`API Key prefix: ${process.env.ANTHROPIC_API_KEY?.substring(0, 10)}...`);
+// Generate explanation using Effect-based Claude AI service
+const generateClaudeExplanation = (content: string, level: string) =>
+    Effect.gen(function* () {
+        yield* Effect.log(`Starting Claude explanation generation for level: ${level}`);
 
-    try {
-        const prompt = buildLevelPrompt(content, level);
-
-        console.log('Calling Claude API with config:', {
-            model: 'claude-3-5-sonnet-20241022',
-            max_tokens: 1000,
-            temperature: 0.7,
-            promptLength: prompt.length
-        });
-
-        const response = await anthropic.messages.create({
-            model: 'claude-3-5-sonnet-20241022',
-            max_tokens: 1000,
-            temperature: 0.7,
-            messages: [
-                {
-                    role: 'user',
-                    content: prompt
-                }
-            ]
-        });
-
-        console.log('Claude API response received:', {
-            contentBlocks: response.content.length,
-            usage: response.usage,
-            model: response.model
-        });
-
-        // Extract text content from the response
-        const textContent = response.content
-            .filter(block => block.type === 'text')
-            .map(block => block.text)
-            .join('\n');
-
-        console.log(`Extracted text content length: ${textContent.length}`);
-        console.log(`Text content preview: ${textContent.substring(0, 100)}...`);
-
-        if (!textContent) {
-            console.error('No text content in Claude response');
-            throw new Error('No text content in Claude response');
+        // Input validation with observability
+        if (!content.trim()) {
+            yield* Effect.logError("Content validation failed: empty content");
+            return yield* new ContentValidationError({ message: "Content cannot be empty" });
         }
 
-        return textContent;
-    } catch (error) {
-        console.error('Claude API error details:', {
-            error: error,
-            message: error instanceof Error ? error.message : 'Unknown error',
-            stack: error instanceof Error ? error.stack : undefined,
-            type: typeof error
-        });
-        throw error;
-    }
-}
+        if (content.length > 5000) {
+            yield* Effect.logError(`Content validation failed: too long (${content.length} chars)`);
+            return yield* new ContentValidationError({
+                message: `Content too long: ${content.length} characters (max 5000)`
+            });
+        }
+
+        yield* Effect.log("Content validation passed");
+
+        const anthropicService = yield* AnthropicService;
+        const prompt = buildLevelPrompt(content, level);
+
+        yield* Effect.log(`Generated prompt for level ${level}: ${prompt.length} characters`);
+
+        const explanation = yield* anthropicService.generateCompletion(prompt);
+
+        yield* Effect.log(`Successfully generated explanation: ${explanation.length} characters`);
+        return explanation;
+    }).pipe(Effect.provide(MainLayer));
 
 export const generateGuestExplanation = action({
     args: {
@@ -119,73 +211,55 @@ export const generateGuestExplanation = action({
             contentLength: content.length
         });
 
-        // Validate input
-        if (!content.trim()) {
-            console.error('Content validation failed: empty content');
-            throw new Error("Content cannot be empty");
-        }
-
-        if (content.length > 5000) {
-            console.error(`Content validation failed: too long (${content.length} chars)`);
-            throw new Error("Content too long. Please limit to 5000 characters.");
-        }
-
-        console.log('Input validation passed');
-
         try {
             const startTime = Date.now();
-            console.log('Starting explanation generation...');
+            console.log('Starting explanation generation with Effect...');
 
-            // Generate explanation using Claude AI
-            const explanation = await generateClaudeExplanation(content, level);
+            // Run the Effect and handle the result
+            const result = await Effect.runPromise(generateClaudeExplanation(content, level));
 
             const processingTime = Date.now() - startTime;
             console.log(`Explanation generated successfully in ${processingTime}ms`);
 
-            const result = {
+            const response = {
                 id: `response-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                content: explanation,
+                content: result,
                 level,
                 metadata: {
                     processingTime,
                     model: "claude-3-5-sonnet-20241022",
-                    tokenCount: Math.floor(explanation.length / 4), // Rough estimate
+                    tokenCount: Math.floor(result.length / 4), // Rough estimate
                 }
             };
 
             console.log('Returning result:', {
-                id: result.id,
-                contentLength: result.content.length,
-                level: result.level,
-                metadata: result.metadata
+                id: response.id,
+                contentLength: response.content.length,
+                level: response.level,
+                metadata: response.metadata
             });
 
-            return result;
+            return response;
         } catch (error) {
             console.error('=== Error in generateGuestExplanation ===');
-            console.error('Error details:', {
-                error: error,
-                message: error instanceof Error ? error.message : 'Unknown error',
-                stack: error instanceof Error ? error.stack : undefined,
-                type: typeof error,
-                name: error instanceof Error ? error.name : undefined
-            });
+            console.error('Error details:', error);
 
-            // Provide more specific error messages
-            if (error instanceof Error) {
-                if (error.message.includes('rate_limit')) {
-                    console.error('Rate limit error detected');
+            // Handle Effect errors with better error messages
+            if (error instanceof AnthropicConfigError) {
+                throw new Error('AI service configuration error. Please contact support.');
+            } else if (error instanceof AnthropicApiError) {
+                if (error.errorType === 'rate_limit') {
                     throw new Error('AI service is currently busy. Please try again in a moment.');
-                } else if (error.message.includes('invalid_api_key') || error.message.includes('authentication')) {
-                    console.error('Authentication error detected');
+                } else if (error.errorType === 'authentication') {
                     throw new Error('AI service configuration error. Please contact support.');
-                } else if (error.message.includes('content_policy')) {
-                    console.error('Content policy error detected');
+                } else if (error.errorType === 'content_policy') {
                     throw new Error('This content cannot be processed due to content policy restrictions.');
                 }
+                throw new Error(`AI service error: ${error.message}`);
+            } else if (error instanceof ContentValidationError) {
+                throw new Error(error.message);
             }
 
-            console.error('Throwing generic error');
             throw new Error(`Failed to generate explanation: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     },
@@ -215,58 +289,54 @@ export const regenerateAtLevel = action({
 
         try {
             const startTime = Date.now();
-            console.log('Starting regeneration...');
+            console.log('Starting regeneration with Effect...');
 
-            // Generate explanation at new level using Claude AI
-            const explanation = await generateClaudeExplanation(originalContent, newLevel);
+            // Run the Effect for regeneration
+            const result = await Effect.runPromise(generateClaudeExplanation(originalContent, newLevel));
 
             const processingTime = Date.now() - startTime;
             console.log(`Regeneration completed successfully in ${processingTime}ms`);
 
-            const result = {
+            const response = {
                 id: `regenerated-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                content: explanation,
+                content: result,
                 level: newLevel,
                 metadata: {
                     processingTime,
                     model: "claude-3-5-sonnet-20241022",
-                    tokenCount: Math.floor(explanation.length / 4),
+                    tokenCount: Math.floor(result.length / 4),
                     regeneratedFrom: newLevel,
                 }
             };
 
             console.log('Returning regeneration result:', {
-                id: result.id,
-                contentLength: result.content.length,
-                level: result.level,
-                metadata: result.metadata
+                id: response.id,
+                contentLength: response.content.length,
+                level: response.level,
+                metadata: response.metadata
             });
 
-            return result;
+            return response;
         } catch (error) {
             console.error('=== Error in regenerateAtLevel ===');
-            console.error('Error details:', {
-                error: error,
-                message: error instanceof Error ? error.message : 'Unknown error',
-                stack: error instanceof Error ? error.stack : undefined,
-                type: typeof error
-            });
+            console.error('Error details:', error);
 
-            // Provide more specific error messages
-            if (error instanceof Error) {
-                if (error.message.includes('rate_limit')) {
-                    console.error('Rate limit error detected in regeneration');
+            // Handle Effect errors with better error messages
+            if (error instanceof AnthropicConfigError) {
+                throw new Error('AI service configuration error. Please contact support.');
+            } else if (error instanceof AnthropicApiError) {
+                if (error.errorType === 'rate_limit') {
                     throw new Error('AI service is currently busy. Please try again in a moment.');
-                } else if (error.message.includes('invalid_api_key') || error.message.includes('authentication')) {
-                    console.error('Authentication error detected in regeneration');
+                } else if (error.errorType === 'authentication') {
                     throw new Error('AI service configuration error. Please contact support.');
-                } else if (error.message.includes('content_policy')) {
-                    console.error('Content policy error detected in regeneration');
+                } else if (error.errorType === 'content_policy') {
                     throw new Error('This content cannot be processed due to content policy restrictions.');
                 }
+                throw new Error(`AI service error: ${error.message}`);
+            } else if (error instanceof ContentValidationError) {
+                throw new Error(error.message);
             }
 
-            console.error('Throwing generic regeneration error');
             throw new Error(`Failed to regenerate explanation: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     },
@@ -286,6 +356,7 @@ export const guestHealthCheck = action({
                 aiGeneration: true,
                 levelSwitching: true,
                 claudeIntegration: true,
+                effectIntegration: true,
             },
             environment: {
                 apiKeyConfigured: !!process.env.ANTHROPIC_API_KEY,

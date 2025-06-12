@@ -1,0 +1,360 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Effect.ts Usage Guidelines
+
+## Overview
+
+Effect is a powerful library for functional programming in TypeScript, but it can easily lead to over-engineering if not used judiciously. These guidelines are based on real refactoring experience and aim to find the "sweet spot" where Effect adds value without unnecessary complexity.
+
+## When to Use Effect vs When Not To
+
+### ✅ Use Effect When:
+- **Complex async workflows** with multiple dependent operations
+- **Multiple error types** that need structured handling
+- **Resource management** is actually needed (databases, file handles, network connections)
+- **Dependency injection** would clarify the code architecture
+- **Observability** is critical for debugging complex workflows
+- **Retry/timeout/cancellation** logic is required
+- **Multiple async operations** that could benefit from parallel execution
+
+### ❌ Don't Use Effect When:
+- **Simple, single API calls** that are already working
+- **Pure functions** that don't involve effects
+- **One-off scripts** or simple utilities
+- **The team lacks Effect experience** and deadline pressure exists
+- **Existing code is working** and complexity isn't justified
+
+## Incremental Adoption Strategy
+
+### Phase 1: Error Management (Start Here)
+```typescript
+// Begin with tagged errors - immediate value, low complexity
+export class ValidationError extends Data.TaggedError("ValidationError")<{
+    readonly message: string;
+    readonly field?: string;
+}> {}
+
+export class ApiError extends Data.TaggedError("ApiError")<{
+    readonly message: string;
+    readonly statusCode?: number;
+    readonly errorType?: string;
+}> {}
+```
+
+### Phase 2: Basic Effect Operations
+```typescript
+// Simple Effect operations for core business logic
+const validateInput = (data: unknown) => Effect.gen(function* () {
+    if (!data) {
+        return yield* new ValidationError({ message: "Data required" });
+    }
+    return data as ValidData;
+});
+```
+
+### Phase 3: Service Architecture
+```typescript
+// Add dependency injection when you have multiple services
+export interface ApiService {
+    readonly call: (endpoint: string) => Effect.Effect<Response, ApiError>;
+}
+
+export const ApiService = Context.GenericTag<ApiService>("ApiService");
+```
+
+### Phase 4: Advanced Features (Only When Needed)
+```typescript
+// Add these only when the use case clearly benefits
+Effect.retry()
+Effect.timeout() 
+Effect.cache()
+Effect.all() // for parallel operations
+```
+
+## Boundary Management
+
+### Rule: Keep Effect Internal, Convert at Boundaries
+
+```typescript
+// ✅ Good: Effect stays internal
+export const processData = action({
+    handler: async (ctx, args) => {
+        try {
+            const result = await Effect.runPromise(
+                processDataEffect(args.data)
+            );
+            return result;
+        } catch (error) {
+            // Handle Effect errors and convert to user-friendly messages
+            if (error instanceof ValidationError) {
+                throw new Error(`Validation failed: ${error.message}`);
+            }
+            throw new Error(`Processing failed: ${error}`);
+        }
+    }
+});
+
+// ❌ Avoid: Leaking Effect types to external APIs
+export const processData = action({
+    handler: Effect.runPromise(processDataEffect) // Don't do this
+});
+```
+
+### Mixed Logging Strategy
+```typescript
+// It's OK to mix logging approaches at boundaries
+export const someAction = action({
+    handler: async (ctx, args) => {
+        console.log('Action called with:', args); // Immediate boundary logging
+        
+        const result = await Effect.runPromise(
+            Effect.gen(function* () {
+                yield* Effect.log('Starting internal processing'); // Structured internal logging
+                // ... Effect operations
+            })
+        );
+        
+        console.log('Action completed'); // Boundary logging
+        return result;
+    }
+});
+```
+
+## Error Handling Best Practices
+
+### Structured Error Types
+```typescript
+// Create domain-specific error types
+export class ConfigurationError extends Data.TaggedError("ConfigurationError")<{
+    readonly message: string;
+    readonly missingKey?: string;
+}> {}
+
+export class ExternalServiceError extends Data.TaggedError("ExternalServiceError")<{
+    readonly message: string;
+    readonly service: string;
+    readonly retryable: boolean;
+}> {}
+```
+
+### Error Mapping at Boundaries
+```typescript
+const handleEffectError = (error: unknown): Error => {
+    if (error instanceof ConfigurationError) {
+        return new Error('Service configuration error. Please contact support.');
+    }
+    if (error instanceof ExternalServiceError && error.retryable) {
+        return new Error('Service temporarily unavailable. Please try again.');
+    }
+    return new Error('An unexpected error occurred.');
+};
+```
+
+## Features to Avoid (Until You Need Them)
+
+### Resource Management (Often Over-Engineering)
+```typescript
+// ❌ Usually unnecessary for HTTP clients
+Effect.acquireRelease(
+    Effect.sync(() => new HttpClient()),
+    (client) => Effect.sync(() => client.close())
+);
+
+// ✅ Simple creation is often fine
+const client = new HttpClient();
+```
+
+### Complex Type Gymnastics
+```typescript
+// ❌ Avoid complex union types unless absolutely necessary
+Effect.Effect<Data, Error1 | Error2 | Error3 | Error4, Context1 & Context2>
+
+// ✅ Keep types simple and focused
+Effect.Effect<Data, DomainError>
+```
+
+### Advanced Control Flow (Start Simple)
+```typescript
+// Don't immediately reach for:
+Effect.race()
+Effect.timeout()
+Effect.retry()
+Effect.interrupt()
+
+// Start with basic operations and add complexity only when needed
+```
+
+## Observability Guidelines
+
+### Structured Logging
+```typescript
+// ✅ Good: Structured, informative logs
+yield* Effect.log(`Processing user ${userId} with ${items.length} items`);
+yield* Effect.logError(`Validation failed for field: ${field}`);
+
+// ❌ Avoid: Noise or redundant logging
+yield* Effect.log('Starting function'); // Too generic
+yield* Effect.log('Function ended'); // Obvious
+```
+
+### Performance Monitoring
+```typescript
+// Add timing for operations that matter
+const timedOperation = <A, E>(operation: Effect.Effect<A, E>) =>
+    Effect.gen(function* () {
+        const start = yield* Effect.sync(() => Date.now());
+        const result = yield* operation;
+        const duration = yield* Effect.sync(() => Date.now() - start);
+        yield* Effect.log(`Operation completed in ${duration}ms`);
+        return result;
+    });
+```
+
+## Testing Considerations
+
+### Mock Services, Not Effect
+```typescript
+// ✅ Mock the service implementations
+const mockApiService = ApiService.of({
+    call: () => Effect.succeed(mockResponse)
+});
+
+const testLayer = Layer.succeed(ApiService, mockApiService);
+
+// Test the Effect with mock layer
+await Effect.runPromise(
+    yourEffect.pipe(Effect.provide(testLayer))
+);
+```
+
+## When to Stop and Refactor
+
+### Red Flags:
+- More than 3 levels of nested `Effect.gen`
+- Error union types with more than 3 alternatives
+- Team members consistently struggling with Effect concepts
+- Build/compile times significantly increased
+- Simple operations taking much longer to implement
+
+### Green Lights for More Effect:
+- Error handling is significantly clearer
+- Dependency injection is reducing coupling
+- Observability is actually helping with debugging
+- Team is comfortable with Effect patterns
+- Complex async workflows are becoming easier to reason about
+
+## Migration Strategy
+
+### For Existing Codebases:
+1. **Start with new features** using Effect
+2. **Refactor problematic areas** (complex error handling, hard-to-test code)
+3. **Leave working code alone** unless there's a clear benefit
+4. **Train team incrementally** - don't force full adoption
+
+### Success Metrics:
+- Fewer runtime errors due to better type safety
+- Easier debugging due to structured logging
+- Clearer code architecture due to dependency injection
+- NOT: "We use Effect everywhere"
+
+## Example: Choosing the Right Level of Effect
+
+### Minimal Effect (Simple API Call)
+```typescript
+// Just error types and basic Effect operations
+const simpleApiCall = (url: string) => Effect.tryPromise({
+    try: () => fetch(url),
+    catch: (error) => new ApiError({ message: String(error) })
+});
+```
+
+### Moderate Effect (Business Logic)
+```typescript
+// Add services and structured error handling
+const processOrder = (order: Order) => Effect.gen(function* () {
+    const paymentService = yield* PaymentService;
+    const inventoryService = yield* InventoryService;
+    
+    yield* Effect.log(`Processing order ${order.id}`);
+    
+    const payment = yield* paymentService.charge(order.amount);
+    const reservation = yield* inventoryService.reserve(order.items);
+    
+    return { payment, reservation };
+});
+```
+
+### Full Effect (Complex Workflow)
+```typescript
+// Use advanced features for genuinely complex scenarios
+const complexWorkflow = Effect.gen(function* () {
+    // Parallel operations
+    const [userData, preferences, history] = yield* Effect.all([
+        userService.getUser(userId),
+        userService.getPreferences(userId),
+        userService.getHistory(userId)
+    ]);
+    
+    // With timeout and retry
+    const recommendations = yield* recommendationService
+        .generate(userData, preferences, history)
+        .pipe(
+            Effect.timeout('30 seconds'),
+            Effect.retry(Schedule.exponential('1 second').pipe(Schedule.compose(Schedule.recurs(3))))
+        );
+        
+    return recommendations;
+});
+```
+
+## Real-World Example: convex/guest.ts Refactor
+
+### What We Did Right:
+- ✅ Started with error types (`AnthropicConfigError`, `AnthropicApiError`, `ContentValidationError`)
+- ✅ Added structured logging with `Effect.log`
+- ✅ Used dependency injection for `ConfigService` and `AnthropicService`
+- ✅ Kept Effect internal and converted to Promises at Convex boundary
+- ✅ Mixed console.log and Effect.log appropriately
+
+### What We Over-Engineered:
+- ❌ Initially tried `Effect.acquireRelease` for HTTP client (unnecessary)
+- ❌ Complex `Scope` type management (not needed for this use case)
+- ❌ Advanced resource management (HTTP client doesn't need cleanup)
+
+### The Sweet Spot We Found:
+```typescript
+// Simple, focused Effect usage
+const generateClaudeExplanation = (content: string, level: string) =>
+    Effect.gen(function* () {
+        // Input validation with observability
+        yield* Effect.log(`Starting Claude explanation generation for level: ${level}`);
+        
+        if (!content.trim()) {
+            yield* Effect.logError("Content validation failed: empty content");
+            return yield* new ContentValidationError({ message: "Content cannot be empty" });
+        }
+        
+        // Service dependency injection
+        const anthropicService = yield* AnthropicService;
+        const explanation = yield* anthropicService.generateCompletion(prompt);
+        
+        yield* Effect.log(`Successfully generated explanation: ${explanation.length} characters`);
+        return explanation;
+    }).pipe(Effect.provide(MainLayer));
+```
+
+### Lessons Learned:
+1. **Error types provide immediate value** - start there
+2. **Observability is worth the complexity** - structured logging helps debugging
+3. **Dependency injection pays off** - makes testing and configuration cleaner
+4. **Boundary management is crucial** - don't leak Effect types to external APIs
+5. **Resource management should match actual needs** - don't over-engineer
+
+## Key Takeaway
+
+**Effect's power comes from its composability and type safety, but that power should be applied proportionally to the complexity of the problem being solved.**
+
+Start simple, add complexity only when it provides clear value, and always consider the team's familiarity with the concepts. The goal is better, more maintainable code - not using Effect for its own sake.
