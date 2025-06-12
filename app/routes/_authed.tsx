@@ -1,21 +1,24 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { SignIn } from '@clerk/tanstack-start'
+import { createFileRoute, redirect } from '@tanstack/react-router'
+import { SignIn, useAuth } from '@clerk/clerk-react'
 
 export const Route = createFileRoute('/_authed')({
-  beforeLoad: ({ context }) => {
-    if (!context.userId) {
-      throw new Error('Not authenticated')
-    }
-  },
-  errorComponent: ({ error }) => {
-    if (error.message === 'Not authenticated') {
-      return (
-        <div className="flex items-center justify-center p-12">
-          <SignIn routing="hash" forceRedirectUrl={window.location.href} />
-        </div>
-      )
-    }
-
-    throw error
-  },
+  component: AuthGuard,
 })
+
+function AuthGuard({ children }: { children?: React.ReactNode }) {
+  const { isSignedIn, isLoaded } = useAuth()
+
+  if (!isLoaded) {
+    return <div>Loading...</div>
+  }
+
+  if (!isSignedIn) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <SignIn routing="hash" />
+      </div>
+    )
+  }
+
+  return <>{children}</>
+}

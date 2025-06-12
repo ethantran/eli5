@@ -27,3 +27,6 @@ yarn.lock
 .env.local
 
 app.config.timestamp*
+
+dist
+.tanstack
