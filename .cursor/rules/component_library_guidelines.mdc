@@ -1,16 +1,11 @@
 ---
 description: 
-globs: 
+globs: *.tsx
 alwaysApply: false
 ---
 # Component Library Guidelines
 
-## Priority Order for Component Selection
-
-When implementing UI components, follow this strict priority order:
-
-### 1. First Choice: Check These Libraries
-Before writing any custom component, always check if a solution exists in:
+Check if a solution exists in:
 
 **Zag.js** (State machines for UI components)
 - Use for complex interactive components with state management
@@ -30,7 +25,7 @@ Before writing any custom component, always check if a solution exists in:
 - Provides robust accessibility and internationalization
 - Documentation: https://react-spectrum.adobe.com/react-aria/
 
-### 2. Component Selection Strategy
+### Component Selection Strategy
 
 1. **Search first**: Always search the documentation of all three libraries for the component you need
 2. **Prioritize by use case**:
@@ -39,7 +34,7 @@ Before writing any custom component, always check if a solution exists in:
    - Accessibility-critical components → React Aria
 3. **Combine when beneficial**: You can use Zag.js for behavior with shadcn/ui styling, or React Aria hooks with custom styling
 
-### 3. Before Creating Custom Components
+### Before Creating Custom Components
 
 If no suitable component exists in the three libraries:
 
@@ -50,7 +45,7 @@ If no suitable component exists in the three libraries:
    - What specific functionality is missing
    - Estimated complexity of the custom solution
 
-### 4. Implementation Guidelines
+### Implementation Guidelines
 
 When using the approved libraries:
 
@@ -59,7 +54,13 @@ When using the approved libraries:
 - **Maintain consistency**: Stick to the library's conventions
 - **Document usage**: Add comments explaining why you chose that specific library
 
-### 5. Custom Component Rules
+## shadcn/ui Component Rules
+- **Always check if component supports controlled mode** (`open`, `value`, etc.)
+- **Use component's state management props** instead of external show/hide
+- **Read Radix UI primitives docs** for underlying behavior
+- **Don't wrap controlled components** in additional state logic unnecessarily
+
+### Custom Component Rules
 
 Only build custom components after explicit approval, and when you do:
 

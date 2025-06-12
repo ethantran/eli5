@@ -1,3 +1,4 @@
+import { useRef, useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -19,6 +20,13 @@ export function MessageBubble({
     isGuest = false,
     className
 }: MessageBubbleProps) {
+    const messageContentRef = useRef<HTMLDivElement>(null);
+    const [selectionDropdown, setSelectionDropdown] = useState<{
+        show: boolean;
+        position: { x: number; y: number };
+        isOpen: boolean;
+    }>({ show: false, position: { x: 0, y: 0 }, isOpen: false });
+
     const isUser = message.role === 'user';
     const isAssistant = message.role === 'assistant';
     const canChangeLevel = isAssistant && onLevelChange && message.level;
@@ -29,7 +37,78 @@ export function MessageBubble({
         }
     };
 
-    console.log('message', message);
+    const handleSelectionDropdownLevelChange = (newLevel: EducationLevel) => {
+        if (onLevelChange) {
+            onLevelChange(message.id, newLevel);
+        }
+        // Clear the selection and hide dropdown
+        setSelectionDropdown({ show: false, position: { x: 0, y: 0 }, isOpen: false });
+        window.getSelection()?.removeAllRanges();
+    };
+
+    const handleSelectionDropdownOpenChange = (open: boolean) => {
+        setSelectionDropdown(prev => ({ ...prev, isOpen: open }));
+
+        // If closing and no longer open, hide the entire selection dropdown
+        if (!open) {
+            setSelectionDropdown({ show: false, position: { x: 0, y: 0 }, isOpen: false });
+            window.getSelection()?.removeAllRanges();
+        }
+    };
+
+    // Handle text selection in assistant messages
+    useEffect(() => {
+        if (!canChangeLevel) return;
+
+        const handleTextSelection = () => {
+            if (!messageContentRef.current) return;
+
+            const selection = window.getSelection();
+            if (!selection || selection.isCollapsed || selection.toString().trim() === '') {
+                setSelectionDropdown({ show: false, position: { x: 0, y: 0 }, isOpen: false });
+                return;
+            }
+
+            // Check if selection is within this message
+            const range = selection.getRangeAt(0);
+            if (!messageContentRef.current.contains(range.commonAncestorContainer)) {
+                return;
+            }
+
+            // Get selection position
+            const rect = range.getBoundingClientRect();
+            const messageRect = messageContentRef.current.getBoundingClientRect();
+
+            const position = {
+                x: rect.left + rect.width / 2 - messageRect.left,
+                y: rect.bottom - messageRect.top + 8
+            };
+
+            setSelectionDropdown({ show: true, position, isOpen: true });
+        };
+
+        const handleClickOutside = (event: MouseEvent) => {
+            // Don't clear selection if clicking on the dropdown
+            const target = event.target as Element;
+            if (target?.closest('[data-radix-dropdown-menu-content]') ||
+                target?.closest('[data-radix-dropdown-menu-trigger]')) {
+                return;
+            }
+
+            // Clear if clicking outside message content
+            if (!messageContentRef.current?.contains(event.target as Node)) {
+                setSelectionDropdown({ show: false, position: { x: 0, y: 0 }, isOpen: false });
+            }
+        };
+
+        document.addEventListener('mouseup', handleTextSelection);
+        document.addEventListener('click', handleClickOutside);
+
+        return () => {
+            document.removeEventListener('mouseup', handleTextSelection);
+            document.removeEventListener('click', handleClickOutside);
+        };
+    }, [canChangeLevel]);
 
     return (
         <div className={cn(
@@ -63,11 +142,44 @@ export function MessageBubble({
                     )}>
                         <div className="p-4">
                             {/* Message Content */}
-                            <div className={cn(
-                                "whitespace-pre-wrap break-words",
-                                isUser ? "text-white" : "text-gray-900"
-                            )}>
+                            <div
+                                ref={messageContentRef}
+                                className={cn(
+                                    "whitespace-pre-wrap break-words relative",
+                                    isUser ? "text-white" : "text-gray-900",
+                                    canChangeLevel && "select-text cursor-text"
+                                )}
+                            >
                                 {message.content}
+
+                                {/* Text Selection Dropdown */}
+                                {selectionDropdown.show && canChangeLevel && (
+                                    <div
+                                        className="absolute z-50"
+                                        style={{
+                                            left: `${selectionDropdown.position.x}px`,
+                                            top: `${selectionDropdown.position.y}px`,
+                                            transform: 'translateX(-50%)'
+                                        }}
+                                    >
+                                        <LevelDropdown
+                                            currentLevel={message.level!}
+                                            onSelect={handleSelectionDropdownLevelChange}
+                                            isGuest={isGuest}
+                                            open={selectionDropdown.isOpen}
+                                            onOpenChange={handleSelectionDropdownOpenChange}
+                                            triggerContent={
+                                                <Button
+                                                    size="sm"
+                                                    className="bg-blue-500 text-white shadow-lg hover:bg-blue-600"
+                                                >
+                                                    <ChevronDown className="w-3 h-3 mr-1" />
+                                                    Change level
+                                                </Button>
+                                            }
+                                        />
+                                    </div>
+                                )}
                             </div>
 
                             {/* Error Message */}

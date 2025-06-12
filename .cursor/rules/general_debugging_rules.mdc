@@ -5,6 +5,20 @@ alwaysApply: false
 ---
 # General Debugging and Troubleshooting Rules
 
+## Required Questions Before Implementation
+1. "Does this component have its own state management API?"
+2. "Am I fighting the component's design or working with it?"
+3. "What does the official documentation say about controlling this?"
+4. "Is this really complex enough to need a state machine?"
+5. "What's the simplest way the component is meant to be used?"
+
+## Debugging Process Rules
+1. **Read the error/behavior literally** - "flashing" = state conflict
+2. **Check component API documentation** before custom solutions
+3. **Verify controlled vs uncontrolled patterns** in third-party libs
+4. **Ask "What does the component expect?"** not "How can I force it?"
+5. **Simplify first, then add complexity** if truly needed
+
 ## Documentation-First Approach
 1. **When user provides documentation links**, carefully examine the actual examples and file structures shown, not just the explanatory text
 2. **Always cross-reference existing code against official documentation** rather than assuming existing code is correct

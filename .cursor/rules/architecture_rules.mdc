@@ -51,6 +51,18 @@ This document defines the architecture patterns and rules for the ELI5 applicati
 - **Services should be injectable into state machines**
 - **Never call React hooks directly from state machines**
 
+## When NOT to Use XState
+- **Simple UI state** (show/hide, open/close) - use useState
+- **Third-party component state** - use component's own API
+- **Form input state** - use controlled component patterns
+- **Animation states** - use CSS or simple React state
+
+## When TO Use XState  
+- **Multi-step workflows** with complex transitions
+- **API call sequences** with error handling
+- **Business logic flows** with branching paths
+- **Cross-component state** that needs coordination
+
 ## Anti-Patterns to Avoid
 
 ### ❌ NEVER: Async Logic in Components

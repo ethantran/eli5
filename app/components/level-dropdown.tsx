@@ -19,6 +19,8 @@ interface LevelDropdownProps {
     triggerContent?: React.ReactNode;
     isGuest?: boolean;
     className?: string;
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
 }
 
 export function LevelDropdown({
@@ -26,66 +28,64 @@ export function LevelDropdown({
     onSelect,
     triggerContent,
     isGuest = false,
-    className
+    className,
+    open,
+    onOpenChange
 }: LevelDropdownProps) {
     const handleLevelSelect = (level: EducationLevel) => {
-        console.log('Level selected:', level);
-        if (level !== currentLevel) {
-            onSelect(level);
-        }
+        onSelect(level);
+        // Close the dropdown after selection
+        onOpenChange?.(false);
     };
-
-    const handleOpenChange = (open: boolean) => {
-        console.log('Dropdown open state changed:', open);
-    };
-
-    console.log('LevelDropdown rendering with triggerContent:', !!triggerContent);
 
     return (
-        <DropdownMenu onOpenChange={handleOpenChange}>
-            <DropdownMenuTrigger>
-                {triggerContent || (
-                    <Button variant="outline" size="sm">
-                        Level: {currentLevel}
-                    </Button>
-                )}
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-                className="w-56 bg-white border shadow-lg"
-                sideOffset={4}
-            >
-                <DropdownMenuLabel>Choose level</DropdownMenuLabel>
-                <DropdownMenuSeparator />
+        <div className={className}>
+            <DropdownMenu open={open} onOpenChange={onOpenChange}>
+                <DropdownMenuTrigger>
+                    {triggerContent || (
+                        <Button variant="outline" size="sm">
+                            {LEVEL_DEFINITIONS[currentLevel].label}
+                        </Button>
+                    )}
+                </DropdownMenuTrigger>
 
-                {isGuest && (
-                    <>
-                        <div className="px-2 py-2">
-                            <div className="p-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
-                                💡 You're in guest mode. Sign up to save your level preferences!
+                <DropdownMenuContent
+                    className="w-56 bg-white border shadow-lg"
+                    sideOffset={4}
+                >
+                    <DropdownMenuLabel>Choose level</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+
+                    {isGuest && (
+                        <>
+                            <div className="px-2 py-2">
+                                <div className="p-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
+                                    💡 You're in guest mode. Sign up to save your level preferences!
+                                </div>
                             </div>
-                        </div>
-                        <DropdownMenuSeparator />
-                    </>
-                )}
+                            <DropdownMenuSeparator />
+                        </>
+                    )}
 
-                {EDUCATION_LEVELS.map((level) => {
-                    const definition = LEVEL_DEFINITIONS[level];
-                    const isSelected = level === currentLevel;
-
-                    return (
+                    {EDUCATION_LEVELS.map((level) => (
                         <DropdownMenuItem
                             key={level}
                             onClick={() => handleLevelSelect(level)}
+                            className="flex items-center justify-between cursor-pointer"
                         >
-                            {isSelected && <Check className="mr-2 h-4 w-4" />}
-                            <div className="flex flex-col">
-                                <span className="font-medium">{definition.label}</span>
-                                <span className="text-xs text-gray-500">{definition.ageRange}</span>
+                            <div className="flex items-center space-x-2">
+                                <span>{LEVEL_DEFINITIONS[level].label}</span>
+                                <span className="text-xs text-gray-500">
+                                    ({LEVEL_DEFINITIONS[level].ageRange})
+                                </span>
                             </div>
+                            {level === currentLevel && (
+                                <Check className="w-4 h-4 text-blue-500" />
+                            )}
                         </DropdownMenuItem>
-                    );
-                })}
-            </DropdownMenuContent>
-        </DropdownMenu>
+                    ))}
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </div>
     );
 } 
