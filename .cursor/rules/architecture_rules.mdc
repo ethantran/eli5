@@ -1,0 +1,246 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# ELI5 Application Architecture Rules
+
+## Overview
+
+This document defines the architecture patterns and rules for the ELI5 application, focusing on clean separation of concerns between React components, state machines, and service layers.
+
+## Architecture Principles
+
+### State Management Rules
+- **ALWAYS use XState state machines for complex async operations and state transitions**
+- **NEVER put async/await, try/catch blocks, or complex state logic directly in React components**
+- **Components should ONLY dispatch events to state machines, never handle async operations**
+- **Use the service layer pattern to abstract external API calls from state machines**
+- **Centralize all error handling within state machines, not in components**
+
+### Component Responsibilities
+- **React components should ONLY handle:**
+  - UI rendering and user interactions
+  - Dispatching events to state machines
+  - Simple local UI state (modals, dropdowns, form inputs)
+- **React components should NEVER:**
+  - Make direct API calls (Convex, REST, etc.)
+  - Handle complex async operations
+  - Manage application business logic
+  - Handle error states beyond displaying them
+  - Use multiple useState hooks for related state
+
+### State Machine Patterns
+- **Create dedicated state machines for:**
+  - Any async operations (API calls, data fetching)
+  - Complex state transitions with multiple steps
+  - Error handling and recovery flows
+  - Multi-step user workflows
+- **State machines should handle:**
+  - All async operations via actors/services
+  - State transitions and business logic
+  - Error handling and recovery
+  - Data transformations
+
+### Service Layer Requirements
+- **Create service layers to abstract external dependencies:**
+  - Convex API calls
+  - External REST APIs
+  - Local storage operations
+  - Complex calculations
+- **Services should be injectable into state machines**
+- **Never call React hooks directly from state machines**
+
+## Anti-Patterns to Avoid
+
+### ❌ NEVER: Async Logic in Components
+```tsx
+// BAD - Don't do this
+const MyComponent = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [data, setData] = useState(null);
+  
+  const handleSubmit = async (data) => {
+    setIsLoading(true);
+    try {
+      const result = await api.call(data);
+      setData(result);
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+}
+```
+
+### ❌ NEVER: Direct API Calls from Components
+```tsx
+// BAD - Don't do this
+const MyComponent = () => {
+  const generateExplanation = useAction(api.guest.generateExplanation);
+  
+  const handleClick = async () => {
+    const result = await generateExplanation(params);
+  };
+}
+```
+
+### ❌ NEVER: Multiple Related useState Hooks
+```tsx
+// BAD - Don't do this
+const [isLoading, setIsLoading] = useState(false);
+const [isGenerating, setIsGenerating] = useState(false);
+const [error, setError] = useState(null);
+const [pendingMessageId, setPendingMessageId] = useState(null);
+```
+
+## Required Patterns
+
+### ✅ ALWAYS: Event-Driven Components
+```tsx
+// GOOD - Components only dispatch events
+const MyComponent = () => {
+  const { state, sendMessage, regenerateMessage } = useMyStateMachine();
+  
+  const handleSubmit = (data) => {
+    sendMessage(data); // Simple event dispatch
+  };
+  
+  const handleRegenerate = (id, level) => {
+    regenerateMessage(id, level); // Simple event dispatch
+  };
+}
+```
+
+### ✅ ALWAYS: Service Layer for External Calls
+```tsx
+// GOOD - Service layer abstracts API calls
+export interface MyService {
+  fetchData: (params) => Promise<Data>;
+}
+
+// Inject service into state machine
+export function useMyStateMachineWithService() {
+  const apiCall = useAction(api.myAction);
+  
+  useEffect(() => {
+    const service: MyService = {
+      fetchData: async (params) => apiCall(params),
+    };
+    setMyService(service);
+  }, [apiCall]);
+  
+  return useMyStateMachine();
+}
+```
+
+### ✅ ALWAYS: State Machines for Complex State
+```tsx
+// GOOD - State machine handles all complex logic
+const myMachine = createMachine({
+  initial: 'idle',
+  states: {
+    idle: {
+      on: {
+        SUBMIT: 'loading'
+      }
+    },
+    loading: {
+      invoke: {
+        src: 'submitData',
+        onDone: 'success',
+        onError: 'error'
+      }
+    },
+    success: { /* ... */ },
+    error: { /* ... */ }
+  }
+});
+```
+
+## File Organization Rules
+
+### State Machines
+- Place in `app/lib/machines/` or `app/lib/hooks/`
+- Name with pattern: `use[Domain][Action]Machine.ts`
+- Example: `useGuestSessionMachine.ts`, `useConversationMachine.ts`
+
+### Service Layers
+- Place in `app/lib/services/`
+- Name with pattern: `[domain]-[provider]-service.ts`
+- Example: `guest-convex-service.ts`, `auth-supabase-service.ts`
+
+### Wrapper Hooks
+- Place in `app/lib/hooks/`
+- Name with pattern: `use[Domain]With[Provider].ts`
+- Example: `useGuestSessionWithConvex.ts`, `useAuthWithSupabase.ts`
+
+## Code Review Checklist
+
+Before accepting any component changes, verify:
+- [ ] No async/await in component functions
+- [ ] No try/catch blocks in components
+- [ ] No direct API calls (useAction, useMutation, etc.) in components
+- [ ] No complex useState combinations for related state
+- [ ] All async operations handled by state machines
+- [ ] Error handling centralized in state machines
+- [ ] Service layer used for external dependencies
+
+## Exception Guidelines
+
+The ONLY acceptable use of async in components:
+- Simple form submissions with immediate feedback (no complex state)
+- File uploads with basic progress indication
+- Navigation actions (router.push, etc.)
+
+For anything more complex than these exceptions, use a state machine.
+
+## Testing Requirements
+
+- Test state machines independently of components
+- Mock service layers for isolated testing
+- Test components with mocked state machine hooks
+- Integration tests should test the full flow: Component → State Machine → Service Layer
+
+## TypeScript Requirements
+
+- Define strict interfaces for all service layers
+- Use branded types for domain objects
+- Define event types for state machine events
+- Use discriminated unions for state machine context
+
+## Architecture Benefits
+
+This architecture ensures:
+1. **Predictable state management** - All state transitions are explicit
+2. **Testable code** - Each layer can be tested independently  
+3. **Maintainable components** - Components are simple and focused
+4. **Reusable business logic** - State machines can be reused across components
+5. **Error resilience** - Centralized error handling with recovery flows
+
+## Implementation Examples
+
+### Real-World Example: Guest Chat Interface
+
+The `guest-chat-interface.tsx` component demonstrates this architecture:
+
+#### Before (Anti-pattern)
+- 225+ lines of complex async logic
+- Multiple useState hooks for related state
+- Direct useAction calls
+- Complex error handling scattered throughout
+
+#### After (Correct pattern)
+- ~50 lines of simple event dispatching
+- Single hook providing all state and actions
+- No async logic in component
+- Centralized error handling in state machine
+
+This transformation improved:
+- **Readability** - Component is now self-documenting
+- **Testability** - Each layer can be tested independently
+- **Maintainability** - Business logic is centralized
+- **Reusability** - State machine can be shared across components
+
