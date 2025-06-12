@@ -8,13 +8,13 @@ test.describe('Guest Chat - End-to-End Functionality', () => {
     test.describe('Message Creation and Basic Flow', () => {
         test('should create a message and get AI response', async ({ page }) => {
             // Navigate to guest chat interface
-            await page.click('text=Try Guest Mode');
+            await page.click('text=Try it now (No signup needed)');
 
             // Wait for the guest chat interface to load
-            await expect(page.locator('[data-testid="chat-input"]')).toBeVisible();
+            await expect(page.locator('input[placeholder*="Ask me anything to explain..."]')).toBeVisible();
 
             // Type a message
-            const chatInput = page.locator('input[placeholder*="Ask me anything"]');
+            const chatInput = page.locator('input[placeholder*="Ask me anything to explain..."]');
             await chatInput.fill('explain photosynthesis');
 
             // Send the message
@@ -34,10 +34,10 @@ test.describe('Guest Chat - End-to-End Functionality', () => {
 
         test('should handle multiple rapid messages without getting stuck', async ({ page }) => {
             // Navigate to guest chat interface
-            await page.click('text=Try Guest Mode');
-            await expect(page.locator('[data-testid="chat-input"]')).toBeVisible();
+            await page.click('text=Try it now (No signup needed)');
+            await expect(page.locator('input[placeholder*="Ask me anything to explain..."]')).toBeVisible();
 
-            const chatInput = page.locator('input[placeholder*="Ask me anything"]');
+            const chatInput = page.locator('input[placeholder*="Ask me anything to explain..."]');
 
             // Send multiple messages rapidly to test race conditions
             const messages = [
@@ -79,10 +79,10 @@ test.describe('Guest Chat - End-to-End Functionality', () => {
     test.describe('Level Changing - Method 1: Dropdown Button', () => {
         test('should change level using dropdown button', async ({ page }) => {
             // Navigate to guest chat and create a message
-            await page.click('text=Try Guest Mode');
-            await expect(page.locator('[data-testid="chat-input"]')).toBeVisible();
+            await page.click('text=Try it now (No signup needed)');
+            await expect(page.locator('input[placeholder*="Ask me anything to explain..."]')).toBeVisible();
 
-            const chatInput = page.locator('input[placeholder*="Ask me anything"]');
+            const chatInput = page.locator('input[placeholder*="Ask me anything to explain..."]');
             await chatInput.fill('explain gravity');
             await page.keyboard.press('Enter');
 
@@ -116,10 +116,10 @@ test.describe('Guest Chat - End-to-End Functionality', () => {
 
         test('CRITICAL: dropdown should not flash when clicking change level button', async ({ page }) => {
             // This test specifically prevents the flashing dropdown regression
-            await page.click('text=Try Guest Mode');
-            await expect(page.locator('[data-testid="chat-input"]')).toBeVisible();
+            await page.click('text=Try it now (No signup needed)');
+            await expect(page.locator('input[placeholder*="Ask me anything to explain..."]')).toBeVisible();
 
-            const chatInput = page.locator('input[placeholder*="Ask me anything"]');
+            const chatInput = page.locator('input[placeholder*="Ask me anything to explain..."]');
             await chatInput.fill('test message');
             await page.keyboard.press('Enter');
 
@@ -152,10 +152,10 @@ test.describe('Guest Chat - End-to-End Functionality', () => {
     test.describe('Level Changing - Method 2: Text Selection', () => {
         test('should change level by selecting text', async ({ page }) => {
             // Navigate to guest chat and create a message
-            await page.click('text=Try Guest Mode');
-            await expect(page.locator('[data-testid="chat-input"]')).toBeVisible();
+            await page.click('text=Try it now (No signup needed)');
+            await expect(page.locator('input[placeholder*="Ask me anything to explain..."]')).toBeVisible();
 
-            const chatInput = page.locator('input[placeholder*="Ask me anything"]');
+            const chatInput = page.locator('input[placeholder*="Ask me anything to explain..."]');
             await chatInput.fill('explain DNA');
             await page.keyboard.press('Enter');
 
@@ -192,10 +192,10 @@ test.describe('Guest Chat - End-to-End Functionality', () => {
 
         test('CRITICAL: text selection dropdown should not flash', async ({ page }) => {
             // This test prevents the text selection dropdown flashing regression
-            await page.click('text=Try Guest Mode');
-            await expect(page.locator('[data-testid="chat-input"]')).toBeVisible();
+            await page.click('text=Try it now (No signup needed)');
+            await expect(page.locator('input[placeholder*="Ask me anything to explain..."]')).toBeVisible();
 
-            const chatInput = page.locator('input[placeholder*="Ask me anything"]');
+            const chatInput = page.locator('input[placeholder*="Ask me anything to explain..."]');
             await chatInput.fill('short test');
             await page.keyboard.press('Enter');
 
@@ -225,15 +225,15 @@ test.describe('Guest Chat - End-to-End Functionality', () => {
     test.describe('Error Handling', () => {
         test('should handle errors gracefully without stuck loading states', async ({ page }) => {
             // Navigate to guest chat interface
-            await page.click('text=Try Guest Mode');
-            await expect(page.locator('[data-testid="chat-input"]')).toBeVisible();
+            await page.click('text=Try it now (No signup needed)');
+            await expect(page.locator('input[placeholder*="Ask me anything to explain..."]')).toBeVisible();
 
             // Intercept the API call and make it fail
             await page.route('**/api/**', route => {
                 route.abort('failed');
             });
 
-            const chatInput = page.locator('input[placeholder*="Ask me anything"]');
+            const chatInput = page.locator('input[placeholder*="Ask me anything to explain..."]');
             await chatInput.fill('this should cause an error');
             await page.keyboard.press('Enter');
 
@@ -258,10 +258,10 @@ test.describe('Guest Chat - End-to-End Functionality', () => {
 
     test.describe('Level Badge Display', () => {
         test('should show correct level badges for messages', async ({ page }) => {
-            await page.click('text=Try Guest Mode');
-            await expect(page.locator('[data-testid="chat-input"]')).toBeVisible();
+            await page.click('text=Try it now (No signup needed)');
+            await expect(page.locator('input[placeholder*="Ask me anything to explain..."]')).toBeVisible();
 
-            const chatInput = page.locator('input[placeholder*="Ask me anything"]');
+            const chatInput = page.locator('input[placeholder*="Ask me anything to explain..."]');
             await chatInput.fill('explain atoms');
             await page.keyboard.press('Enter');
 
@@ -288,10 +288,10 @@ test.describe('Guest Chat - End-to-End Functionality', () => {
 
     test.describe('Guest Mode Features', () => {
         test('should show guest mode notifications in dropdown', async ({ page }) => {
-            await page.click('text=Try Guest Mode');
-            await expect(page.locator('[data-testid="chat-input"]')).toBeVisible();
+            await page.click('text=Try it now (No signup needed)');
+            await expect(page.locator('input[placeholder*="Ask me anything to explain..."]')).toBeVisible();
 
-            const chatInput = page.locator('input[placeholder*="Ask me anything"]');
+            const chatInput = page.locator('input[placeholder*="Ask me anything to explain..."]');
             await chatInput.fill('test guest mode');
             await page.keyboard.press('Enter');
 
