@@ -14,6 +14,7 @@ import { Route as rootRoute } from './routes/__root'
 import { Route as ConvexpostsImport } from './routes/convexposts'
 import { Route as AuthedImport } from './routes/_authed'
 import { Route as IndexImport } from './routes/index'
+import { Route as GuestChatImport } from './routes/guest.chat'
 import { Route as AuthedPostsImport } from './routes/_authed/posts'
 import { Route as AuthedPostsIndexImport } from './routes/_authed/posts.index'
 import { Route as AuthedProfileSplatImport } from './routes/_authed/profile.$'
@@ -35,6 +36,12 @@ const AuthedRoute = AuthedImport.update({
 const IndexRoute = IndexImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const GuestChatRoute = GuestChatImport.update({
+  id: '/guest/chat',
+  path: '/guest/chat',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -94,6 +101,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedPostsImport
       parentRoute: typeof AuthedImport
     }
+    '/guest/chat': {
+      id: '/guest/chat'
+      path: '/guest/chat'
+      fullPath: '/guest/chat'
+      preLoaderRoute: typeof GuestChatImport
+      parentRoute: typeof rootRoute
+    }
     '/_authed/posts/$postId': {
       id: '/_authed/posts/$postId'
       path: '/$postId'
@@ -152,6 +166,7 @@ export interface FileRoutesByFullPath {
   '': typeof AuthedRouteWithChildren
   '/convexposts': typeof ConvexpostsRoute
   '/posts': typeof AuthedPostsRouteWithChildren
+  '/guest/chat': typeof GuestChatRoute
   '/posts/$postId': typeof AuthedPostsPostIdRoute
   '/profile/$': typeof AuthedProfileSplatRoute
   '/posts/': typeof AuthedPostsIndexRoute
@@ -161,6 +176,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '': typeof AuthedRouteWithChildren
   '/convexposts': typeof ConvexpostsRoute
+  '/guest/chat': typeof GuestChatRoute
   '/posts/$postId': typeof AuthedPostsPostIdRoute
   '/profile/$': typeof AuthedProfileSplatRoute
   '/posts': typeof AuthedPostsIndexRoute
@@ -172,6 +188,7 @@ export interface FileRoutesById {
   '/_authed': typeof AuthedRouteWithChildren
   '/convexposts': typeof ConvexpostsRoute
   '/_authed/posts': typeof AuthedPostsRouteWithChildren
+  '/guest/chat': typeof GuestChatRoute
   '/_authed/posts/$postId': typeof AuthedPostsPostIdRoute
   '/_authed/profile/$': typeof AuthedProfileSplatRoute
   '/_authed/posts/': typeof AuthedPostsIndexRoute
@@ -184,17 +201,26 @@ export interface FileRouteTypes {
     | ''
     | '/convexposts'
     | '/posts'
+    | '/guest/chat'
     | '/posts/$postId'
     | '/profile/$'
     | '/posts/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '' | '/convexposts' | '/posts/$postId' | '/profile/$' | '/posts'
+  to:
+    | '/'
+    | ''
+    | '/convexposts'
+    | '/guest/chat'
+    | '/posts/$postId'
+    | '/profile/$'
+    | '/posts'
   id:
     | '__root__'
     | '/'
     | '/_authed'
     | '/convexposts'
     | '/_authed/posts'
+    | '/guest/chat'
     | '/_authed/posts/$postId'
     | '/_authed/profile/$'
     | '/_authed/posts/'
@@ -205,12 +231,14 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthedRoute: typeof AuthedRouteWithChildren
   ConvexpostsRoute: typeof ConvexpostsRoute
+  GuestChatRoute: typeof GuestChatRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthedRoute: AuthedRouteWithChildren,
   ConvexpostsRoute: ConvexpostsRoute,
+  GuestChatRoute: GuestChatRoute,
 }
 
 export const routeTree = rootRoute
@@ -225,7 +253,8 @@ export const routeTree = rootRoute
       "children": [
         "/",
         "/_authed",
-        "/convexposts"
+        "/convexposts",
+        "/guest/chat"
       ]
     },
     "/": {
@@ -248,6 +277,9 @@ export const routeTree = rootRoute
         "/_authed/posts/$postId",
         "/_authed/posts/"
       ]
+    },
+    "/guest/chat": {
+      "filePath": "guest.chat.tsx"
     },
     "/_authed/posts/$postId": {
       "filePath": "_authed/posts.$postId.tsx",

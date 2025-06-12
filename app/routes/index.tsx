@@ -1,19 +1,19 @@
 import { useState } from 'react';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { GuestLanding } from '~/components/guest-landing';
-import { GuestChatInterface } from '~/components/guest-chat-interface';
 
 export const Route = createFileRoute('/')({
   component: Home,
 })
 
-type AppMode = 'landing' | 'guest-chat' | 'signup';
+type AppMode = 'landing' | 'signup';
 
 function Home() {
+  const navigate = useNavigate();
   const [mode, setMode] = useState<AppMode>('landing');
 
   const handleStartGuest = () => {
-    setMode('guest-chat');
+    navigate({ to: '/guest/chat' });
   };
 
   const handleSignUp = () => {
@@ -25,15 +25,6 @@ function Home() {
   const handleBackToLanding = () => {
     setMode('landing');
   };
-
-  if (mode === 'guest-chat') {
-    return (
-      <GuestChatInterface
-        onSignUp={handleSignUp}
-        onBack={handleBackToLanding}
-      />
-    );
-  }
 
   if (mode === 'signup') {
     return (
