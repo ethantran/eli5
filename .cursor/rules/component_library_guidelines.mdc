@@ -1,0 +1,117 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Component Library Guidelines
+
+## Priority Order for Component Selection
+
+When implementing UI components, follow this strict priority order:
+
+### 1. First Choice: Check These Libraries
+Before writing any custom component, always check if a solution exists in:
+
+**Zag.js** (State machines for UI components)
+- Use for complex interactive components with state management
+- Excellent for: modals, comboboxes, tooltips, tabs, accordions, date pickers
+- Provides unstyled, accessible behavior with full control over styling
+- Documentation: https://zagjs.com/
+
+**shadcn/ui** (React component library)
+- Use for common UI patterns with modern styling
+- Excellent for: buttons, forms, cards, dialogs, navigation, data tables
+- Pre-styled with Tailwind CSS, highly customizable
+- Documentation: https://ui.shadcn.com/
+
+**React Aria** (Accessibility-first hooks and components)
+- Use for accessible, unstyled component primitives
+- Excellent for: form controls, overlays, collections, selection components
+- Provides robust accessibility and internationalization
+- Documentation: https://react-spectrum.adobe.com/react-aria/
+
+### 2. Component Selection Strategy
+
+1. **Search first**: Always search the documentation of all three libraries for the component you need
+2. **Prioritize by use case**:
+   - Complex stateful interactions → Zag.js
+   - Common UI patterns with styling → shadcn/ui  
+   - Accessibility-critical components → React Aria
+3. **Combine when beneficial**: You can use Zag.js for behavior with shadcn/ui styling, or React Aria hooks with custom styling
+
+### 3. Before Creating Custom Components
+
+If no suitable component exists in the three libraries:
+
+1. **STOP** - Do not proceed to build a custom component
+2. **ASK** - Request permission by explaining:
+   - What component you need to build
+   - Why the existing libraries don't meet the requirements
+   - What specific functionality is missing
+   - Estimated complexity of the custom solution
+
+### 4. Implementation Guidelines
+
+When using the approved libraries:
+
+- **Import efficiently**: Only import the specific components/hooks needed
+- **Follow documentation**: Use the recommended patterns and props
+- **Maintain consistency**: Stick to the library's conventions
+- **Document usage**: Add comments explaining why you chose that specific library
+
+### 5. Custom Component Rules
+
+Only build custom components after explicit approval, and when you do:
+
+- Make them composable and reusable
+- Follow accessibility guidelines (WCAG 2.1 AA)
+- Include proper TypeScript types
+- Add comprehensive documentation
+- Consider if the component could be contributed back to the community
+
+## Example Decision Process
+
+```
+Need: A date picker component
+
+1. ✅ Check Zag.js → Has date-picker machine
+2. ✅ Check shadcn/ui → Has date-picker component  
+3. ✅ Check React Aria → Has DatePicker components
+
+Decision: Use shadcn/ui date-picker for styled solution, or Zag.js + custom styling for more control
+```
+
+```
+Need: A unique animated chart component
+
+1. ❌ Check Zag.js → No chart components
+2. ❌ Check shadcn/ui → Basic chart components don't fit needs
+3. ❌ Check React Aria → No chart components
+
+Decision: STOP and ASK before building custom animated chart
+```
+
+## Library Installation Commands
+
+Keep these handy for quick installation:
+
+```bash
+# Zag.js
+npm install @zag-js/react @zag-js/[component-name]
+
+# shadcn/ui (after initial setup)
+npx shadcn-ui@latest add [component-name]
+
+# React Aria
+npm install react-aria-components
+# or individual packages
+npm install @react-aria/[component-name]
+```
+
+## Remember
+
+- These libraries are battle-tested and accessible
+- They save development time and reduce bugs
+- Custom components should be the exception, not the rule
+
+- Always prefer composition over custom implementation
