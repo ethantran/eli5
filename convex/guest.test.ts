@@ -2,6 +2,10 @@ import { convexTest } from "convex-test";
 import { expect, test, describe, vi, beforeEach, afterEach } from "vitest";
 import { api } from "./_generated/api";
 import schema from "./schema";
+import { modules } from "./test.setup";
+
+// Define global for edge-runtime environment
+globalThis.global = globalThis;
 
 // Mock the Anthropic client response
 const mockAnthropicResponse = {
@@ -58,7 +62,7 @@ describe("Guest Actions - Response Structure Tests", () => {
     });
 
     test("generateGuestExplanation returns expected response structure", async () => {
-        const t = convexTest(schema);
+        const t = convexTest(schema, modules);
 
         const response = await t.action(api.guest.generateGuestExplanation, {
             content: "How do computers work?",
@@ -96,7 +100,7 @@ describe("Guest Actions - Response Structure Tests", () => {
     });
 
     test("regenerateAtLevel returns expected response structure", async () => {
-        const t = convexTest(schema);
+        const t = convexTest(schema, modules);
 
         const response = await t.action(api.guest.regenerateAtLevel, {
             originalContent: "Explain quantum physics",
@@ -130,7 +134,7 @@ describe("Guest Actions - Response Structure Tests", () => {
     });
 
     test("all education levels are supported", async () => {
-        const t = convexTest(schema);
+        const t = convexTest(schema, modules);
         const levels = ["preschool", "elementary", "middle", "high", "college", "phd"] as const;
 
         for (const level of levels) {
@@ -162,7 +166,7 @@ describe("Guest Actions - Error Handling Tests", () => {
     });
 
     test("generateGuestExplanation handles empty content", async () => {
-        const t = convexTest(schema);
+        const t = convexTest(schema, modules);
 
         await expect(
             t.action(api.guest.generateGuestExplanation, {
@@ -182,7 +186,7 @@ describe("Guest Actions - Error Handling Tests", () => {
     });
 
     test("generateGuestExplanation handles content too long", async () => {
-        const t = convexTest(schema);
+        const t = convexTest(schema, modules);
         const longContent = "a".repeat(5001);
 
         await expect(
@@ -195,7 +199,7 @@ describe("Guest Actions - Error Handling Tests", () => {
     });
 
     test("generateGuestExplanation handles API errors gracefully", async () => {
-        const t = convexTest(schema);
+        const t = convexTest(schema, modules);
 
         // Mock API failure
         vi.stubGlobal('fetch', vi.fn(async () => {
@@ -212,7 +216,7 @@ describe("Guest Actions - Error Handling Tests", () => {
     });
 
     test("regenerateAtLevel handles API errors gracefully", async () => {
-        const t = convexTest(schema);
+        const t = convexTest(schema, modules);
 
         // Mock API failure
         vi.stubGlobal('fetch', vi.fn(async () => {
@@ -229,7 +233,7 @@ describe("Guest Actions - Error Handling Tests", () => {
     });
 
     test("specific error messages for rate limits", async () => {
-        const t = convexTest(schema);
+        const t = convexTest(schema, modules);
 
         vi.stubGlobal('fetch', vi.fn(async () => {
             throw new Error('rate_limit exceeded');
@@ -245,7 +249,7 @@ describe("Guest Actions - Error Handling Tests", () => {
     });
 
     test("specific error messages for authentication", async () => {
-        const t = convexTest(schema);
+        const t = convexTest(schema, modules);
 
         vi.stubGlobal('fetch', vi.fn(async () => {
             throw new Error('invalid_api_key');
@@ -276,7 +280,7 @@ describe("Guest Actions - Integration Debugging", () => {
     });
 
     test("response timing and performance", async () => {
-        const t = convexTest(schema);
+        const t = convexTest(schema, modules);
 
         const startTime = Date.now();
         const response = await t.action(api.guest.generateGuestExplanation, {
@@ -295,7 +299,7 @@ describe("Guest Actions - Integration Debugging", () => {
     });
 
     test("response content quality and format", async () => {
-        const t = convexTest(schema);
+        const t = convexTest(schema, modules);
 
         const response = await t.action(api.guest.generateGuestExplanation, {
             content: "What is gravity?",
@@ -317,7 +321,7 @@ describe("Guest Actions - Integration Debugging", () => {
     });
 
     test("sessionId is properly passed through", async () => {
-        const t = convexTest(schema);
+        const t = convexTest(schema, modules);
 
         const sessionId = "debug-session-12345";
         const response = await t.action(api.guest.generateGuestExplanation, {
@@ -334,7 +338,7 @@ describe("Guest Actions - Integration Debugging", () => {
     });
 
     test("concurrent requests handling", async () => {
-        const t = convexTest(schema);
+        const t = convexTest(schema, modules);
 
         // Send multiple requests concurrently
         const requests = Array.from({ length: 3 }, (_, i) =>
@@ -359,7 +363,7 @@ describe("Guest Actions - Integration Debugging", () => {
     });
 
     test("response matches expected interface for frontend", async () => {
-        const t = convexTest(schema);
+        const t = convexTest(schema, modules);
 
         const response = await t.action(api.guest.generateGuestExplanation, {
             content: "Explain machine learning",
@@ -396,7 +400,7 @@ describe("Guest Actions - Integration Debugging", () => {
 
 describe("Guest Actions - Health Check", () => {
     test("guestHealthCheck returns proper status", async () => {
-        const t = convexTest(schema);
+        const t = convexTest(schema, modules);
 
         const health = await t.action(api.guest.guestHealthCheck);
 
